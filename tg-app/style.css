@@ -99,6 +99,13 @@ html, body {
 }
 
 /* ─── ЭКРАН 1: Старт ─────────────────────────────────────────────────────────── */
+#screen-welcome {
+  /* Тонкий градиент сверху — синие блики за логотипом */
+  background:
+    radial-gradient(ellipse 260px 180px at 50% 0%, rgba(42,171,238,0.13) 0%, transparent 70%),
+    var(--tg-bg);
+}
+
 #screen-welcome .screen-content {
   align-items: center;
   justify-content: center;

@@ -193,9 +193,25 @@ function applyTheme() {
 }
 
 // ─── ЭКРАН 1: СТАРТ ───────────────────────────────────────────────────────────
+function animateCounter(el, target, duration = 1200) {
+  const start = performance.now();
+  const update = (now) => {
+    const progress = Math.min((now - start) / duration, 1);
+    // easeOutExpo
+    const ease = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+    const value = Math.round(ease * target);
+    el.textContent = `Уже прошли ${value.toLocaleString('ru')} клиник`;
+    if (progress < 1) requestAnimationFrame(update);
+  };
+  requestAnimationFrame(update);
+}
+
 function initWelcome() {
   const counter = document.getElementById('welcome-counter');
-  if (counter) counter.textContent = `Уже прошли ${CONFIG.totalAudited.toLocaleString('ru')} клиник`;
+  if (counter) {
+    counter.textContent = 'Уже прошли 0 клиник';
+    setTimeout(() => animateCounter(counter, CONFIG.totalAudited), 400);
+  }
 
   hideBackBtn();
 
