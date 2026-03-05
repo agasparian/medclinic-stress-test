@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="format-detection" content="telephone=no">
+  <title>Маркетинговый стресс-тест клиники</title>
+
+  <!-- Telegram WebApp SDK — обязателен для работы в Telegram -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       ЭКРАН 1: СТАРТ (Welcome)
+       Первый экран — активен по умолчанию
+  ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="screen active" id="screen-welcome">
+    <div class="screen-content">
+
+      <!-- Логотип агентства -->
+      <div class="welcome-logo" id="welcome-logo">💊</div>
+
+      <!-- Название и описание -->
+      <h1 class="welcome-title">Маркетинговый<br>стресс-тест клиники</h1>
+      <p class="welcome-subtitle">
+        Узнайте, насколько ваш поток пациентов защищён от роста цен на рекламу
+      </p>
+
+      <!-- Social proof счётчик -->
+      <div class="welcome-counter" id="welcome-counter">
+        Уже прошли 1 247 клиник
+      </div>
+
+      <!-- Три буллета ценности -->
+      <div class="welcome-bullets">
+        <div class="welcome-bullet">
+          <div class="welcome-bullet-icon">✓</div>
+          <span>Бесплатно</span>
+        </div>
+        <div class="welcome-bullet">
+          <div class="welcome-bullet-icon">✓</div>
+          <span>3 минуты</span>
+        </div>
+        <div class="welcome-bullet">
+          <div class="welcome-bullet-icon">✓</div>
+          <span>Результат сразу — без звонка</span>
+        </div>
+      </div>
+
+    </div>
+    <!-- MainButton «Начать стресс-тест» управляется через Telegram.WebApp.MainButton -->
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       ЭКРАНЫ 2–7: ВОПРОСЫ КВИЗА (один экран, контент меняется динамически)
+  ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="screen" id="screen-question">
+
+    <!-- Прогресс-бар и заголовок вопроса (фиксированная часть) -->
+    <div class="question-header">
+      <div class="progress-wrap">
+        <div class="progress-track">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <span class="progress-text" id="progress-text">Вопрос 1 из 6</span>
+      </div>
+      <h2 class="question-title" id="question-title">Заголовок вопроса</h2>
+      <p class="question-hint" id="question-hint"></p>
+    </div>
+
+    <!-- Варианты ответов (скроллируемый список) -->
+    <div class="options-list" id="options-list">
+      <!-- Заполняется динамически через app.js -->
+    </div>
+
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       ЭКРАН 8: ЗАГРУЗКА
+  ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="screen" id="screen-loading">
+    <div class="screen-content" style="align-items:center; justify-content:center; gap:24px;">
+      <div class="loader-spinner"></div>
+      <div class="loader-text" id="loader-text">Анализируем данные...</div>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       ЭКРАН 9: РЕЗУЛЬТАТ
+  ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="screen" id="screen-result">
+    <div class="screen-content">
+
+      <!-- Заголовок -->
+      <div class="result-header">
+        <div class="result-title">Результаты стресс-теста</div>
+
+        <!-- Балл + прогресс-бар -->
+        <div class="score-wrap">
+          <div class="score-number" id="result-score">0 / 100</div>
+          <div class="score-track">
+            <div class="score-fill" id="score-fill"></div>
+          </div>
+        </div>
+
+        <!-- Уровень риска -->
+        <div class="level-badge" id="level-badge">
+          <span id="level-emoji">🔴</span>
+          <span id="level-text">ВЫСОКИЙ РИСК</span>
+        </div>
+
+        <!-- Сравнение со средним -->
+        <div class="score-avg" id="score-avg"></div>
+
+        <!-- Краткое сообщение -->
+        <p class="score-message" id="score-message"></p>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Карта рисков -->
+      <div>
+        <div class="risk-map-title">Карта рисков</div>
+        <div id="risk-map">
+          <!-- Заполняется динамически -->
+        </div>
+      </div>
+
+      <!-- Сценарий риска (показывается только если флаг BUDGET_RISK) -->
+      <div class="risk-scenario hidden" id="risk-scenario">
+        <div class="risk-scenario-title">⚡ Сценарий риска</div>
+        <div class="risk-scenario-text" id="risk-scenario-text"></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Топ-3 проблемы -->
+      <div>
+        <div class="problems-title">Что исправить в первую очередь</div>
+        <div id="problems-list">
+          <!-- Заполняется динамически -->
+        </div>
+      </div>
+
+      <!-- Поделиться результатом -->
+      <button class="share-btn" id="btn-share">
+        <span>🔗</span>
+        <span>Поделиться результатом</span>
+      </button>
+
+    </div>
+    <!-- MainButton «Получить план усиления — бесплатно» через Telegram API -->
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       ЭКРАН 10: ФОРМА КОНТАКТОВ
+  ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="screen" id="screen-contacts">
+    <div class="screen-content">
+
+      <div class="contacts-header">
+        <h2 class="contacts-title">Куда отправить детальный план?</h2>
+        <p class="contacts-subtitle">
+          Эксперт свяжется в течение 2 часов и разберёт ваши точки роста
+        </p>
+      </div>
+
+      <!-- Имя (автозаполнение из Telegram) -->
+      <div class="form-group">
+        <label class="form-label">Имя</label>
+        <input
+          class="form-input"
+          type="text"
+          id="input-name"
+          placeholder="Ваше имя"
+          autocomplete="given-name"
+        >
+      </div>
+
+      <!-- Телефон — обязательное -->
+      <div class="form-group">
+        <label class="form-label">Телефон <span style="color:var(--danger)">*</span></label>
+        <input
+          class="form-input"
+          type="tel"
+          id="input-phone"
+          placeholder="+7 (___) ___-__-__"
+          autocomplete="tel"
+          inputmode="tel"
+        >
+      </div>
+
+      <!-- Название клиники — необязательное -->
+      <div class="form-group">
+        <label class="form-label">Название клиники <span style="color:var(--tg-hint);">(необязательно)</span></label>
+        <input
+          class="form-input"
+          type="text"
+          id="input-clinic"
+          placeholder="Клиника Здоровье"
+          autocomplete="organization"
+        >
+      </div>
+
+      <!-- Согласие 152-ФЗ -->
+      <div class="consent-wrap" id="consent-wrap">
+        <div class="consent-checkbox" id="consent-checkbox"></div>
+        <div class="consent-text">
+          Согласен(на) с
+          <a href="#" id="consent-link">политикой конфиденциальности</a>
+          и обработкой персональных данных
+        </div>
+      </div>
+
+    </div>
+    <!-- MainButton «Отправить» через Telegram API -->
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       ЭКРАН 11: ПОДТВЕРЖДЕНИЕ
+  ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="screen" id="screen-done">
+    <div class="screen-content">
+
+      <!-- Анимированная галочка -->
+      <div class="done-icon-wrap">
+        <span class="done-checkmark">✅</span>
+      </div>
+
+      <h2 class="done-title">Готово!</h2>
+      <p class="done-subtitle">
+        Эксперт свяжется с вами<br>в течение 2 часов
+      </p>
+
+      <!-- Карточка менеджера -->
+      <div class="manager-card">
+        <div class="manager-avatar" id="manager-avatar">А</div>
+        <div class="manager-info">
+          <div class="manager-name" id="manager-name">Алексей Громов</div>
+          <div class="manager-role" id="manager-role">Ведущий маркетолог</div>
+        </div>
+      </div>
+
+      <!-- Кнопки -->
+      <div class="done-actions">
+        <button class="btn-channel" id="btn-channel">
+          <span>✈️</span>
+          <span>Канал МедСпринт</span>
+        </button>
+        <button class="btn-close" id="btn-close">Закрыть</button>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /#app -->
+
+<!-- Скрипты: порядок важен — data и scoring загружаются до app -->
+<script src="data.js"></script>
+<script src="scoring.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>

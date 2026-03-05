@@ -1,0 +1,850 @@
+/**
+ * style.css — Стили приложения «Маркетинговый стресс-тест клиники»
+ * Дизайн: нативный Telegram, мобильный first, 320–430px
+ */
+
+/* ─── CSS-переменные Telegram (переопределяются через themeParams) ─────────── */
+:root {
+  --tg-bg:          #ffffff;
+  --tg-secondary:   #f1f1f1;
+  --tg-text:        #000000;
+  --tg-hint:        #999999;
+  --tg-link:        #2AABEE;
+  --tg-btn:         #2AABEE;
+  --tg-btn-text:    #ffffff;
+
+  /* Собственные переменные */
+  --accent:         #2AABEE;
+  --accent-light:   rgba(42, 171, 238, 0.12);
+  --danger:         #E53935;
+  --warning:        #FB8C00;
+  --success:        #43A047;
+  --critical:       #B71C1C;
+
+  --radius-sm:      8px;
+  --radius-md:      12px;
+  --radius-lg:      16px;
+  --shadow:         0 2px 12px rgba(0,0,0,0.08);
+  --shadow-card:    0 1px 4px rgba(0,0,0,0.06);
+
+  --transition:     0.2s ease;
+  --slide-duration: 0.28s;
+}
+
+/* ─── Базовые стили ──────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
+  background: var(--tg-bg);
+  color: var(--tg-text);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+/* ─── Контейнер приложения ───────────────────────────────────────────────────── */
+#app {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* ─── Экраны ─────────────────────────────────────────────────────────────────── */
+.screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--tg-bg);
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  /* Начальное состояние: спрятан справа */
+  transform: translateX(100%);
+  opacity: 0;
+  pointer-events: none;
+  /* Плавный переход */
+  transition:
+    transform var(--slide-duration) cubic-bezier(0.4, 0, 0.2, 1),
+    opacity   var(--slide-duration) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.screen.active {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Экран уходит влево (при переходе вперёд) */
+.screen.leaving {
+  transform: translateX(-30%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ─── Безопасная зона снизу (под MainButton) ─────────────────────────────────── */
+.screen-content {
+  flex: 1;
+  padding: 20px 16px 80px;  /* 80px = место для MainButton */
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── ЭКРАН 1: Старт ─────────────────────────────────────────────────────────── */
+#screen-welcome .screen-content {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 0;
+  padding-top: 32px;
+}
+
+.welcome-logo {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 16px rgba(42,171,238,0.3);
+}
+
+.welcome-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--tg-text);
+  margin: 0 0 10px;
+  line-height: 1.3;
+}
+
+.welcome-subtitle {
+  font-size: 14px;
+  color: var(--tg-hint);
+  margin: 0 0 20px;
+  line-height: 1.5;
+  max-width: 280px;
+}
+
+.welcome-counter {
+  font-size: 13px;
+  color: var(--accent);
+  font-weight: 500;
+  margin-bottom: 28px;
+  background: var(--accent-light);
+  padding: 6px 14px;
+  border-radius: 20px;
+}
+
+.welcome-bullets {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 280px;
+  margin-top: 4px;
+}
+
+.welcome-bullet {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--tg-text);
+  background: var(--tg-secondary);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+}
+
+.welcome-bullet-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--success);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ─── ЭКРАН 2–7: Вопросы ──────────────────────────────────────────────────────── */
+.question-header {
+  padding: 12px 16px 0;
+  flex-shrink: 0;
+}
+
+/* Прогресс-бар */
+.progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.progress-track {
+  flex: 1;
+  height: 4px;
+  background: var(--tg-secondary);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+.progress-text {
+  font-size: 12px;
+  color: var(--tg-hint);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.question-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--tg-text);
+  margin: 0 0 6px;
+  line-height: 1.4;
+}
+
+.question-hint {
+  font-size: 13px;
+  color: var(--tg-hint);
+  margin: 0 0 14px;
+  line-height: 1.4;
+  font-style: italic;
+}
+
+/* Список вариантов ответов */
+.options-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 16px 80px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Карточка-ответ */
+.option-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--tg-secondary);
+  border-radius: var(--radius-md);
+  padding: 13px 14px;
+  min-height: 52px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition:
+    border-color var(--transition),
+    background   var(--transition),
+    transform    0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+}
+
+.option-card:active {
+  transform: scale(0.98);
+}
+
+.option-card.selected {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+.option-emoji {
+  font-size: 20px;
+  flex-shrink: 0;
+  width: 28px;
+  text-align: center;
+}
+
+.option-text {
+  font-size: 14px;
+  color: var(--tg-text);
+  flex: 1;
+  line-height: 1.35;
+}
+
+/* Иконка выбора (для multi-select) */
+.option-check {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--tg-hint);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition);
+  margin-left: 4px;
+}
+
+.option-card.selected .option-check {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.option-check::after {
+  content: '';
+  display: none;
+  width: 5px;
+  height: 8px;
+  border: 2px solid #fff;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+
+.option-card.selected .option-check::after {
+  display: block;
+}
+
+/* Точка для single-select */
+.option-radio {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--tg-hint);
+  flex-shrink: 0;
+  margin-left: 4px;
+  position: relative;
+  transition: all var(--transition);
+}
+
+.option-card.selected .option-radio {
+  border-color: var(--accent);
+}
+
+.option-card.selected .option-radio::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* ─── ЭКРАН 8: Загрузка ───────────────────────────────────────────────────────── */
+#screen-loading .screen-content {
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+}
+
+.loader-spinner {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 3px solid var(--tg-secondary);
+  border-top-color: var(--accent);
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loader-text {
+  font-size: 15px;
+  color: var(--tg-hint);
+  text-align: center;
+  min-height: 24px;
+  transition: opacity 0.3s ease;
+}
+
+/* ─── ЭКРАН 9: Результат ──────────────────────────────────────────────────────── */
+#screen-result .screen-content {
+  gap: 16px;
+  padding-bottom: 90px;
+}
+
+.result-header {
+  text-align: center;
+  padding: 8px 0;
+}
+
+.result-title {
+  font-size: 13px;
+  color: var(--tg-hint);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 16px;
+}
+
+/* Большой прогресс-бар счёта */
+.score-wrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.score-number {
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  min-width: 80px;
+}
+
+.score-track {
+  flex: 1;
+  height: 10px;
+  background: var(--tg-secondary);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.score-fill {
+  height: 100%;
+  border-radius: 5px;
+  width: 0%;
+  transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Бейдж уровня */
+.level-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+/* Строка сравнения */
+.score-avg {
+  font-size: 13px;
+  color: var(--tg-hint);
+}
+
+.score-message {
+  font-size: 14px;
+  color: var(--tg-text);
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+/* Разделитель */
+.divider {
+  height: 1px;
+  background: var(--tg-secondary);
+  margin: 4px 0;
+}
+
+/* Карта рисков */
+.risk-map-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tg-hint);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+
+.risk-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.risk-row-icon {
+  font-size: 16px;
+  width: 22px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.risk-row-label {
+  font-size: 13px;
+  color: var(--tg-hint);
+  width: 96px;
+  flex-shrink: 0;
+}
+
+.risk-bar-wrap {
+  flex: 1;
+  height: 6px;
+  background: var(--tg-secondary);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.risk-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  width: 0%;
+  transition: width 1s ease 0.3s;
+}
+
+.risk-row-score {
+  font-size: 12px;
+  color: var(--tg-hint);
+  width: 36px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.risk-row-flag {
+  font-size: 14px;
+  width: 16px;
+  flex-shrink: 0;
+}
+
+/* Сценарий риска */
+.risk-scenario {
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  background: rgba(229, 57, 53, 0.08);
+  border: 1px solid rgba(229, 57, 53, 0.2);
+}
+
+.risk-scenario-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--danger);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 6px;
+}
+
+.risk-scenario-text {
+  font-size: 13px;
+  color: var(--tg-text);
+  line-height: 1.5;
+}
+
+/* Топ-3 проблемы */
+.problems-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tg-hint);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+
+.problem-card {
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--tg-secondary);
+  border-radius: var(--radius-md);
+  margin-bottom: 8px;
+}
+
+.problem-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.problem-text {
+  font-size: 14px;
+  color: var(--tg-text);
+  line-height: 1.45;
+}
+
+/* Кнопка «Поделиться» под контентом результата */
+.share-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 13px;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  min-height: 48px;
+  margin-top: 8px;
+}
+
+.share-btn:active {
+  background: var(--accent-light);
+}
+
+/* ─── ЭКРАН 10: Форма контактов ──────────────────────────────────────────────── */
+#screen-contacts .screen-content {
+  gap: 16px;
+  padding-top: 24px;
+}
+
+.contacts-header {
+  margin-bottom: 4px;
+}
+
+.contacts-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--tg-text);
+  margin: 0 0 8px;
+}
+
+.contacts-subtitle {
+  font-size: 14px;
+  color: var(--tg-hint);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Поле ввода */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tg-hint);
+}
+
+.form-input {
+  width: 100%;
+  min-height: 50px;
+  padding: 13px 14px;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--tg-secondary);
+  background: var(--tg-secondary);
+  color: var(--tg-text);
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color var(--transition), background var(--transition);
+  -webkit-appearance: none;
+}
+
+.form-input:focus {
+  border-color: var(--accent);
+  background: var(--tg-bg);
+}
+
+.form-input::placeholder {
+  color: var(--tg-hint);
+}
+
+/* Чекбокс согласия (152-ФЗ) */
+.consent-wrap {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 4px 0;
+}
+
+.consent-checkbox {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  border: 2px solid var(--tg-hint);
+  flex-shrink: 0;
+  margin-top: 1px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition);
+}
+
+.consent-checkbox.checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.consent-checkbox.checked::after {
+  content: '';
+  display: block;
+  width: 5px;
+  height: 9px;
+  border: 2px solid #fff;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg) translate(-1px, -2px);
+}
+
+.consent-text {
+  font-size: 13px;
+  color: var(--tg-hint);
+  line-height: 1.45;
+}
+
+.consent-text a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+/* ─── ЭКРАН 11: Подтверждение ─────────────────────────────────────────────────── */
+#screen-done .screen-content {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 0;
+}
+
+.done-icon-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: rgba(67, 160, 71, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  animation: pop-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes pop-in {
+  from { transform: scale(0.5); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+.done-checkmark {
+  width: 32px;
+  height: 32px;
+  color: var(--success);
+  font-size: 32px;
+}
+
+.done-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--tg-text);
+  margin: 0 0 10px;
+}
+
+.done-subtitle {
+  font-size: 14px;
+  color: var(--tg-hint);
+  line-height: 1.5;
+  margin: 0 0 28px;
+  max-width: 260px;
+}
+
+/* Блок менеджера */
+.manager-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--tg-secondary);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  width: 100%;
+  max-width: 300px;
+  margin-bottom: 24px;
+}
+
+.manager-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: #fff;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.manager-info {
+  text-align: left;
+}
+
+.manager-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--tg-text);
+}
+
+.manager-role {
+  font-size: 13px;
+  color: var(--tg-hint);
+}
+
+/* Кнопка канала и закрыть */
+.done-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 300px;
+}
+
+.btn-channel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  min-height: 50px;
+  transition: opacity var(--transition);
+}
+
+.btn-channel:active { opacity: 0.85; }
+
+.btn-close {
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--tg-hint);
+  font-size: 14px;
+  cursor: pointer;
+  border: none;
+  min-height: 44px;
+}
+
+/* ─── Тёмная тема ────────────────────────────────────────────────────────────── */
+/* Telegram передаёт dark тему через themeParams, мы применяем через JS.
+   Дополнительный data-атрибут на body для ручного переключения при тестировании. */
+body[data-theme="dark"] {
+  --tg-bg:        #1c1c1e;
+  --tg-secondary: #2c2c2e;
+  --tg-text:      #ffffff;
+  --tg-hint:      #8e8e93;
+}
+
+/* ─── Утилиты ────────────────────────────────────────────────────────────────── */
+.hidden  { display: none !important; }
+.visible { display: flex !important; }
+.text-center { text-align: center; }
+
+/* Сглаживание скролла */
+* { scrollbar-width: none; }
+*::-webkit-scrollbar { display: none; }
