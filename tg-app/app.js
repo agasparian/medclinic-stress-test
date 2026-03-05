@@ -1,123 +1,125 @@
 /**
  * app.js — Главная логика приложения «Маркетинговый стресс-тест клиники»
- *
- * Порядок работы:
- *   1. Инициализация Telegram WebApp
- *   2. Показ экрана welcome
- *   3. Квиз: последовательный показ вопросов (screen-question, динамический контент)
- *   4. Экран загрузки → расчёт скора → экран результата
- *   5. Форма контактов → подтверждение
  */
 
-// ─── Telegram WebApp (с fallback для тестирования в браузере) ─────────────────
-const tg = window.Telegram?.WebApp || {
-  ready:           () => {},
-  expand:          () => {},
-  close:           () => {},
-  openTelegramLink:(url) => window.open(url, '_blank'),
-  sendData:        (data) => console.log('sendData:', data),
-  themeParams:     {},
-  colorScheme:     'light',
-  initDataUnsafe:  { user: {} },
-  MainButton: {
-    text: '',
-    isVisible: false,
-    setText:  (t) => { tg.MainButton.text = t; },
-    show:     () => { tg.MainButton.isVisible = true; renderFallbackBtn(); },
-    hide:     () => { tg.MainButton.isVisible = false; removeFallbackBtn(); },
-    enable:   () => {},
-    disable:  () => {},
-    showProgress: () => {},
-    hideProgress: () => {},
-    onClick:  (fn) => { tg.MainButton._handler = fn; },
-    offClick: (fn) => { tg.MainButton._handler = null; },
-    _handler: null,
-  },
-  BackButton: {
-    isVisible: false,
-    show:    () => { tg.BackButton.isVisible = true; },
-    hide:    () => { tg.BackButton.isVisible = false; },
-    onClick: (fn) => { tg.BackButton._handler = fn; },
-    offClick:(fn) => { tg.BackButton._handler = null; },
-    _handler: null,
-  },
-  HapticFeedback: {
-    selectionChanged:    () => {},
-    impactOccurred:      () => {},
-    notificationOccurred:() => {},
-  },
+// ─── Telegram WebApp API ──────────────────────────────────────────────────────
+// Используем реальный SDK если доступен, иначе заглушки
+const tg = window.Telegram?.WebApp ?? {
+  ready:            () => {},
+  expand:           () => {},
+  close:            () => window.close(),
+  openTelegramLink: (url) => window.open(url, '_blank'),
+  themeParams:      {},
+  colorScheme:      'light',
+  initDataUnsafe:   { user: {} },
+  MainButton:  { setText:()=>{}, show:()=>{}, hide:()=>{}, enable:()=>{}, disable:()=>{}, showProgress:()=>{}, hideProgress:()=>{}, onClick:()=>{}, offClick:()=>{} },
+  BackButton:  { show:()=>{}, hide:()=>{}, onClick:()=>{}, offClick:()=>{} },
+  HapticFeedback: { selectionChanged:()=>{}, impactOccurred:()=>{} },
 };
 
-// ─── Браузерная кнопка (fallback при открытии не в Telegram) ─────────────────
-function renderFallbackBtn() {
-  let btn = document.getElementById('fallback-main-btn');
-  if (!btn) {
-    btn = document.createElement('button');
-    btn.id = 'fallback-main-btn';
-    btn.style.cssText = `
-      position: fixed; bottom: 0; left: 0; right: 0;
-      height: 52px; background: #2AABEE; color: #fff;
-      border: none; font-size: 15px; font-weight: 600;
-      cursor: pointer; z-index: 9999;
-      font-family: inherit;
-    `;
-    document.body.appendChild(btn);
-    btn.addEventListener('click', () => {
-      if (tg.MainButton._handler) tg.MainButton._handler();
-    });
-  }
-  btn.textContent = tg.MainButton.text;
-  btn.style.display = 'block';
-}
-
-function removeFallbackBtn() {
-  const btn = document.getElementById('fallback-main-btn');
-  if (btn) btn.style.display = 'none';
-}
+// Запущено ли внутри реального Telegram (не в браузере)
+const isInTelegram = !!(window.Telegram?.WebApp?.initDataUnsafe?.user?.id);
 
 // ─── Состояние приложения ─────────────────────────────────────────────────────
 const state = {
-  currentScreen: 'screen-welcome', // id активного экрана
-  questionOrder: [],                // порядок вопросов (может пропускать q2)
-  questionIndex: 0,                 // текущий индекс в questionOrder
-  answers: {
-    q1: [],     // multi-select: массив id
-    q2: null,   // single: id или null
-    q3: null,
-    q4: null,
-    q5: null,
-    q6: null,
-  },
-  scoreResult: null,    // результат calculateScore()
+  currentScreen:  'screen-welcome',
+  questionOrder:  [],   // ['q1','q2',...] — может пропускать q2
+  questionIndex:  0,
+  answers: { q1: [], q2: null, q3: null, q4: null, q5: null, q6: null },
+  scoreResult:    null,
   consentChecked: false,
-  mainBtnHandler: null, // текущий обработчик MainButton
+  mainBtnHandler: null, // текущий обработчик главной кнопки
 };
 
-// ─── Утилиты навигации ────────────────────────────────────────────────────────
+// ─── Вспомогательная DOM-кнопка (браузерный fallback) ────────────────────────
+function showFallbackBtn(text) {
+  if (isInTelegram) return; // в Telegram кнопка нативная
 
-/**
- * Переход на другой экран с анимацией slide.
- * direction: 'forward' (по умолчанию) | 'back'
- */
+  let btn = document.getElementById('fallback-btn');
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.id = 'fallback-btn';
+    Object.assign(btn.style, {
+      position: 'fixed', bottom: '0', left: '0', right: '0',
+      height: '52px', background: 'var(--accent)', color: '#fff',
+      border: 'none', fontSize: '15px', fontWeight: '600',
+      cursor: 'pointer', zIndex: '9999', fontFamily: 'inherit',
+      transition: 'opacity 0.2s',
+    });
+    document.body.appendChild(btn);
+    // Всегда читаем state.mainBtnHandler — актуальный на момент клика
+    btn.addEventListener('click', () => {
+      if (state.mainBtnHandler) state.mainBtnHandler();
+    });
+  }
+  btn.textContent = text;
+  btn.style.display = 'block';
+  btn.style.opacity = '1';
+  btn.disabled = false;
+}
+
+function hideFallbackBtn() {
+  const btn = document.getElementById('fallback-btn');
+  if (btn) btn.style.display = 'none';
+}
+
+function disableFallbackBtn() {
+  const btn = document.getElementById('fallback-btn');
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
+}
+
+function enableFallbackBtn() {
+  const btn = document.getElementById('fallback-btn');
+  if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+}
+
+// ─── Управление главной кнопкой ───────────────────────────────────────────────
+function setMainBtn(text, handler, enabled = true) {
+  // Снимаем предыдущий обработчик из Telegram SDK
+  if (state.mainBtnHandler) tg.MainButton.offClick(state.mainBtnHandler);
+
+  // Сохраняем новый
+  state.mainBtnHandler = handler;
+
+  // Telegram SDK
+  tg.MainButton.setText(text);
+  tg.MainButton.onClick(handler);
+  tg.MainButton.show();
+  if (enabled) tg.MainButton.enable(); else tg.MainButton.disable();
+
+  // DOM fallback
+  showFallbackBtn(text);
+  if (enabled) enableFallbackBtn(); else disableFallbackBtn();
+}
+
+function hideMainBtn() {
+  if (state.mainBtnHandler) tg.MainButton.offClick(state.mainBtnHandler);
+  state.mainBtnHandler = null;
+  tg.MainButton.hide();
+  hideFallbackBtn();
+}
+
+// ─── Навигация между экранами (slide-анимация) ────────────────────────────────
 function goTo(screenId, direction = 'forward') {
   const fromEl = document.getElementById(state.currentScreen);
   const toEl   = document.getElementById(screenId);
   if (!toEl || fromEl === toEl) return;
 
-  // Позиция входящего экрана до анимации
+  // Начальное положение входящего экрана
   toEl.style.transition = 'none';
   toEl.style.transform  = direction === 'forward' ? 'translateX(40%)' : 'translateX(-40%)';
   toEl.style.opacity    = '0';
-  toEl.classList.add('active'); // делаем видимым (pointer-events off через opacity)
+  toEl.classList.add('active');
 
   // Форсируем перерисовку
-  toEl.offsetHeight; // eslint-disable-line
+  void toEl.offsetHeight;
 
-  // Запускаем анимацию
+  // Анимируем вход
   toEl.style.transition = '';
   toEl.style.transform  = 'translateX(0)';
   toEl.style.opacity    = '1';
 
+  // Анимируем уход текущего экрана
   if (fromEl) {
     fromEl.style.transform = direction === 'forward' ? 'translateX(-40%)' : 'translateX(40%)';
     fromEl.style.opacity   = '0';
@@ -125,87 +127,61 @@ function goTo(screenId, direction = 'forward') {
       fromEl.classList.remove('active');
       fromEl.style.transform = '';
       fromEl.style.opacity   = '';
-    }, 290);
+    }, 300);
   }
 
   state.currentScreen = screenId;
 }
 
-/** Установить обработчик MainButton (автоматически снимает предыдущий) */
-function setMainBtn(text, handler, enabled = true) {
-  tg.MainButton.offClick(state.mainBtnHandler);
-  state.mainBtnHandler = handler;
-  tg.MainButton.setText(text);
-  if (enabled) tg.MainButton.enable(); else tg.MainButton.disable();
-  tg.MainButton.onClick(state.mainBtnHandler);
-  tg.MainButton.show();
-  renderFallbackBtn(); // на случай браузера
-}
-
-/** Скрыть MainButton */
-function hideMainBtn() {
-  tg.MainButton.offClick(state.mainBtnHandler);
-  state.mainBtnHandler = null;
-  tg.MainButton.hide();
-}
-
-// ─── Применение темы Telegram ─────────────────────────────────────────────────
+// ─── Тема Telegram ────────────────────────────────────────────────────────────
 function applyTheme() {
   const p = tg.themeParams || {};
-  const root = document.documentElement;
-
-  if (p.bg_color)              root.style.setProperty('--tg-bg',        p.bg_color);
-  if (p.secondary_bg_color)    root.style.setProperty('--tg-secondary',  p.secondary_bg_color);
-  if (p.text_color)            root.style.setProperty('--tg-text',       p.text_color);
-  if (p.hint_color)            root.style.setProperty('--tg-hint',       p.hint_color);
-  if (p.link_color)            root.style.setProperty('--tg-link',       p.link_color);
-  if (p.button_color)          root.style.setProperty('--tg-btn',        p.button_color);
-  if (p.button_text_color)     root.style.setProperty('--tg-btn-text',   p.button_text_color);
-  if (p.button_color)          root.style.setProperty('--accent',        p.button_color);
-
-  if (tg.colorScheme === 'dark') {
-    document.body.setAttribute('data-theme', 'dark');
-  }
+  const r = document.documentElement;
+  if (p.bg_color)           r.style.setProperty('--tg-bg',        p.bg_color);
+  if (p.secondary_bg_color) r.style.setProperty('--tg-secondary',  p.secondary_bg_color);
+  if (p.text_color)         r.style.setProperty('--tg-text',       p.text_color);
+  if (p.hint_color)         r.style.setProperty('--tg-hint',       p.hint_color);
+  if (p.button_color)       r.style.setProperty('--accent',        p.button_color);
+  if (tg.colorScheme === 'dark') document.body.setAttribute('data-theme', 'dark');
 }
 
 // ─── ЭКРАН 1: СТАРТ ───────────────────────────────────────────────────────────
 function initWelcome() {
-  // Счётчик прошедших
   const counter = document.getElementById('welcome-counter');
-  if (counter) {
-    counter.textContent = `Уже прошли ${CONFIG.totalAudited.toLocaleString('ru')} клиник`;
-  }
-
-  // Восстановить прогресс из localStorage
-  const savedAnswers = localStorage.getItem('stress_test_answers');
-  const savedStep    = localStorage.getItem('stress_test_step');
-  if (savedAnswers && savedStep) {
-    // Показываем подсказку «продолжить»
-    showContinueBanner(savedStep);
-  }
+  if (counter) counter.textContent = `Уже прошли ${CONFIG.totalAudited.toLocaleString('ru')} клиник`;
 
   tg.BackButton.hide();
 
+  // Проверяем незавершённый прогресс
+  const savedAnswers = localStorage.getItem('stress_test_answers');
+  const savedStep    = localStorage.getItem('stress_test_step');
+  if (savedAnswers && savedStep) showContinueBanner(savedStep);
+
   setMainBtn('Начать стресс-тест', () => {
-    // Сбросить старый прогресс при новом старте
     localStorage.removeItem('stress_test_answers');
     localStorage.removeItem('stress_test_step');
+    // Убираем баннер продолжения если был
+    document.getElementById('continue-banner')?.remove();
     startQuiz();
   });
 }
 
 function showContinueBanner(step) {
+  if (document.getElementById('continue-banner')) return;
   const content = document.querySelector('#screen-welcome .screen-content');
-  const banner = document.createElement('div');
+  const banner  = document.createElement('div');
+  banner.id = 'continue-banner';
   banner.style.cssText = `
     margin-top: 20px; padding: 12px 14px; border-radius: 10px;
     background: var(--accent-light); border: 1px solid var(--accent);
     font-size: 13px; color: var(--tg-text); text-align: center; width: 100%;
   `;
-  banner.innerHTML = `Есть незавершённый тест (шаг ${parseInt(step) + 1}).
-    <br><a id="continue-link" style="color:var(--accent);font-weight:600;">Продолжить</a>
+  banner.innerHTML = `
+    Есть незавершённый тест (шаг ${parseInt(step) + 1}).<br>
+    <a id="continue-link" style="color:var(--accent);font-weight:600;cursor:pointer;">Продолжить</a>
     &nbsp;·&nbsp;
-    <a id="restart-link" style="color:var(--tg-hint);">Начать заново</a>`;
+    <a id="restart-link" style="color:var(--tg-hint);cursor:pointer;">Начать заново</a>
+  `;
   content.appendChild(banner);
 
   document.getElementById('continue-link')?.addEventListener('click', () => {
@@ -225,171 +201,125 @@ function showContinueBanner(step) {
 }
 
 // ─── КВИЗ ─────────────────────────────────────────────────────────────────────
-
-/** Определяет порядок вопросов с учётом ветвления */
 function buildQuestionOrder() {
-  const skipQ2 = state.answers.q1.includes('unknown');
-  state.questionOrder = skipQ2
+  state.questionOrder = state.answers.q1.includes('unknown')
     ? ['q1', 'q3', 'q4', 'q5', 'q6']
     : ['q1', 'q2', 'q3', 'q4', 'q5', 'q6'];
 }
 
 function startQuiz() {
-  state.answers   = { q1: [], q2: null, q3: null, q4: null, q5: null, q6: null };
+  state.answers      = { q1: [], q2: null, q3: null, q4: null, q5: null, q6: null };
   state.questionIndex = 0;
   buildQuestionOrder();
-
   goTo('screen-question');
   renderQuestion();
 }
 
-/** Рендерит текущий вопрос в экране screen-question */
 function renderQuestion() {
   const qId = state.questionOrder[state.questionIndex];
   const q   = QUESTIONS.find(q => q.id === qId);
   if (!q) return;
 
-  // Прогресс-бар
   const total   = state.questionOrder.length;
   const current = state.questionIndex + 1;
-  const pct     = ((state.questionIndex) / total) * 100;
 
-  document.getElementById('progress-fill').style.width = pct + '%';
-  document.getElementById('progress-text').textContent = `Вопрос ${current} из ${total}`;
+  // Прогресс-бар
+  document.getElementById('progress-fill').style.width =
+    ((state.questionIndex / total) * 100) + '%';
+  document.getElementById('progress-text').textContent =
+    `Вопрос ${current} из ${total}`;
 
   // Заголовок и подсказка
   document.getElementById('question-title').textContent = q.title;
   const hintEl = document.getElementById('question-hint');
-  if (q.hint) {
-    hintEl.textContent = q.hint;
-    hintEl.classList.remove('hidden');
-  } else {
-    hintEl.classList.add('hidden');
-  }
+  hintEl.textContent = q.hint || '';
+  hintEl.style.display = q.hint ? 'block' : 'none';
 
   // Варианты ответов
   const list = document.getElementById('options-list');
   list.innerHTML = '';
-  q.options.forEach(opt => {
-    const card = document.createElement('div');
-    card.className = 'option-card';
-    card.dataset.id = opt.id;
-
-    // Индикатор выбора: чекбокс (multi) или радио (single)
-    const indicator = document.createElement('div');
-    indicator.className = q.type === 'multi' ? 'option-check' : 'option-radio';
-
-    card.innerHTML = `
-      <span class="option-emoji">${opt.emoji}</span>
-      <span class="option-text">${opt.text}</span>
-    `;
-    card.appendChild(indicator);
-
-    // Восстановить выбранное состояние
-    const savedAnswer = state.answers[qId];
-    if (q.type === 'multi' && Array.isArray(savedAnswer) && savedAnswer.includes(opt.id)) {
-      card.classList.add('selected');
-    } else if (q.type === 'single' && savedAnswer === opt.id) {
-      card.classList.add('selected');
-    }
-
-    card.addEventListener('click', () => handleOptionClick(q, opt, card));
-    list.appendChild(card);
-  });
+  q.options.forEach(opt => renderOption(list, q, opt));
 
   // BackButton
-  if (state.questionIndex === 0) {
-    tg.BackButton.show();
-    tg.BackButton.onClick(handleBack);
-  } else {
-    tg.BackButton.show();
-    tg.BackButton.onClick(handleBack);
-  }
+  tg.BackButton.show();
+  tg.BackButton.offClick(handleBack);
+  tg.BackButton.onClick(handleBack);
 
-  // MainButton — активна только если есть выбор
-  updateMainBtn(q);
+  updateQuizMainBtn(q);
 }
 
-/** Обработка клика по варианту ответа */
+function renderOption(list, q, opt) {
+  const card = document.createElement('div');
+  card.className = 'option-card';
+  card.dataset.id = opt.id;
+
+  const indicator = document.createElement('div');
+  indicator.className = q.type === 'multi' ? 'option-check' : 'option-radio';
+
+  card.innerHTML = `<span class="option-emoji">${opt.emoji}</span><span class="option-text">${opt.text}</span>`;
+  card.appendChild(indicator);
+
+  // Восстановить выбранное состояние
+  const saved = state.answers[q.id];
+  const isSelected = q.type === 'multi'
+    ? Array.isArray(saved) && saved.includes(opt.id)
+    : saved === opt.id;
+  if (isSelected) card.classList.add('selected');
+
+  card.addEventListener('click', () => handleOptionClick(q, opt, card));
+  list.appendChild(card);
+}
+
 function handleOptionClick(q, opt, card) {
   tg.HapticFeedback.selectionChanged();
-
   const cards = document.querySelectorAll('#options-list .option-card');
 
   if (q.type === 'single') {
-    // Снимаем выбор со всех, выбираем только одну
     cards.forEach(c => c.classList.remove('selected'));
     card.classList.add('selected');
     state.answers[q.id] = opt.id;
 
-    // При single-select — небольшая задержка и переход (опционально)
-    // Пользователь может нажать MainButton или дождаться автоперехода
-
   } else {
     // Multi-select
     if (opt.exclusive) {
-      // «Не знаем» — снимает все остальные
       const wasSelected = card.classList.contains('selected');
       cards.forEach(c => c.classList.remove('selected'));
-      if (!wasSelected) {
-        card.classList.add('selected');
-        state.answers[q.id] = [opt.id];
-      } else {
-        state.answers[q.id] = [];
-      }
+      state.answers[q.id] = wasSelected ? [] : [opt.id];
+      if (!wasSelected) card.classList.add('selected');
     } else {
-      // Снимаем exclusive-вариант если он был выбран
-      cards.forEach(c => {
-        const cId = c.dataset.id;
-        const cOpt = q.options.find(o => o.id === cId);
-        if (cOpt?.exclusive) c.classList.remove('selected');
-      });
-      state.answers[q.id] = (state.answers[q.id] || []).filter(id => {
-        const o = q.options.find(o => o.id === id);
-        return !o?.exclusive;
-      });
-
-      // Переключаем текущую карточку
+      // Снимаем exclusive-вариант
+      const excl = q.options.find(o => o.exclusive);
+      if (excl) {
+        document.querySelector(`[data-id="${excl.id}"]`)?.classList.remove('selected');
+        state.answers[q.id] = (state.answers[q.id] || []).filter(id => id !== excl.id);
+      }
       if (card.classList.contains('selected')) {
         card.classList.remove('selected');
-        state.answers[q.id] = state.answers[q.id].filter(id => id !== opt.id);
+        state.answers[q.id] = (state.answers[q.id] || []).filter(id => id !== opt.id);
       } else {
         card.classList.add('selected');
-        if (!state.answers[q.id]) state.answers[q.id] = [];
-        state.answers[q.id].push(opt.id);
+        state.answers[q.id] = [...(state.answers[q.id] || []), opt.id];
       }
     }
   }
 
-  // Пересчёт порядка если изменился Q1 (может добавить/убрать Q2)
   if (q.id === 'q1') buildQuestionOrder();
-
-  updateMainBtn(q);
+  updateQuizMainBtn(q);
   saveProgress();
 }
 
-/** Обновляет состояние MainButton в зависимости от наличия ответа */
-function updateMainBtn(q) {
-  const answer = state.answers[q.id];
+function updateQuizMainBtn(q) {
+  const answer   = state.answers[q.id];
   const hasAnswer = q.type === 'multi'
     ? Array.isArray(answer) && answer.length > 0
     : answer !== null;
 
   const isLast = state.questionIndex === state.questionOrder.length - 1;
-  const btnText = isLast ? 'Узнать результат' : 'Далее';
-
-  setMainBtn(btnText, handleNextQuestion, hasAnswer);
-
-  // Серый цвет кнопки если нет выбора
-  if (!hasAnswer) {
-    tg.MainButton.disable();
-  }
+  setMainBtn(isLast ? 'Узнать результат' : 'Далее', handleNextQuestion, hasAnswer);
 }
 
-/** Переход к следующему вопросу или к загрузке */
 function handleNextQuestion() {
   const isLast = state.questionIndex === state.questionOrder.length - 1;
-
   if (isLast) {
     goToLoading();
   } else {
@@ -399,12 +329,9 @@ function handleNextQuestion() {
   }
 }
 
-/** Обработка BackButton — возврат на предыдущий вопрос или старт */
 function handleBack() {
   tg.HapticFeedback.selectionChanged();
-
   if (state.questionIndex === 0) {
-    // Вернуться на стартовый экран
     tg.BackButton.hide();
     goTo('screen-welcome', 'back');
     initWelcome();
@@ -415,10 +342,9 @@ function handleBack() {
   }
 }
 
-/** Сохранить прогресс в localStorage */
 function saveProgress() {
   localStorage.setItem('stress_test_answers', JSON.stringify(state.answers));
-  localStorage.setItem('stress_test_step', state.questionIndex.toString());
+  localStorage.setItem('stress_test_step', String(state.questionIndex));
 }
 
 // ─── ЭКРАН ЗАГРУЗКИ ───────────────────────────────────────────────────────────
@@ -426,27 +352,22 @@ function goToLoading() {
   hideMainBtn();
   tg.BackButton.hide();
   goTo('screen-loading');
-  runLoadingAnimation();
-}
 
-function runLoadingAnimation() {
-  const textEl    = document.getElementById('loader-text');
-  let   msgIndex  = 0;
-
-  // Меняем текст каждые 700 мс
+  const textEl = document.getElementById('loader-text');
+  let i = 0;
   textEl.textContent = LOADING_MESSAGES[0];
+
   const interval = setInterval(() => {
-    msgIndex++;
-    if (msgIndex < LOADING_MESSAGES.length) {
+    i++;
+    if (i < LOADING_MESSAGES.length) {
       textEl.style.opacity = '0';
       setTimeout(() => {
-        textEl.textContent = LOADING_MESSAGES[msgIndex];
+        textEl.textContent = LOADING_MESSAGES[i];
         textEl.style.opacity = '1';
-      }, 200);
+      }, 250);
     }
   }, 700);
 
-  // Через ~2.8 сек переходим к результату
   setTimeout(() => {
     clearInterval(interval);
     state.scoreResult = calculateScore(state.answers);
@@ -458,13 +379,9 @@ function runLoadingAnimation() {
 
 // ─── ЭКРАН РЕЗУЛЬТАТА ─────────────────────────────────────────────────────────
 function goToResult() {
-  const r = state.scoreResult;
   goTo('screen-result');
-  renderResult(r);
-
-  // BackButton скрыт — нет смысла возвращаться к квизу
   tg.BackButton.hide();
-
+  renderResult(state.scoreResult);
   setMainBtn('Получить план усиления — бесплатно', () => {
     goTo('screen-contacts');
     initContactForm();
@@ -472,259 +389,194 @@ function goToResult() {
 }
 
 function renderResult(r) {
-  // Балл
   document.getElementById('result-score').textContent = `${r.total} / 100`;
 
-  // Прогресс-бар (анимация запускается после перехода)
+  // Прогресс-бар итога
   const scoreFill = document.getElementById('score-fill');
   scoreFill.style.background = r.levelData.color;
-  setTimeout(() => {
-    scoreFill.style.width = r.total + '%';
-  }, 100);
+  setTimeout(() => { scoreFill.style.width = r.total + '%'; }, 150);
 
   // Бейдж уровня
   const badge = document.getElementById('level-badge');
   badge.style.background = r.levelData.bgColor;
-  badge.style.color       = r.levelData.color;
+  badge.style.color      = r.levelData.color;
   document.getElementById('level-emoji').textContent = r.levelData.emoji;
   document.getElementById('level-text').textContent  = r.levelData.badge;
 
-  // Сравнение со средним
+  // Сравнение и сообщение
   document.getElementById('score-avg').textContent =
     `Средний по нише: ${CONFIG.avgScore}/100 · ${CONFIG.avgSource}`;
-
-  // Сообщение
   document.getElementById('score-message').textContent = r.levelData.message;
 
   // Карта рисков
-  renderRiskMap(r);
+  const riskMap = document.getElementById('risk-map');
+  riskMap.innerHTML = '';
+  Object.values(r.blocks).forEach(block => {
+    const pct   = (block.score / block.max) * 100;
+    const color = pct >= 70 ? '#43A047' : pct >= 40 ? '#FB8C00' : '#E53935';
+    const flag  = pct === 0 ? '🔴' : pct < 50 ? '⚠️' : '';
+    const row   = document.createElement('div');
+    row.className = 'risk-row';
+    row.innerHTML = `
+      <span class="risk-row-icon">${block.icon}</span>
+      <span class="risk-row-label">${block.label}</span>
+      <div class="risk-bar-wrap"><div class="risk-bar-fill" style="background:${color}"></div></div>
+      <span class="risk-row-score">${block.score}/${block.max}</span>
+      <span class="risk-row-flag">${flag}</span>`;
+    riskMap.appendChild(row);
+    setTimeout(() => {
+      row.querySelector('.risk-bar-fill').style.width = pct + '%';
+    }, 200);
+  });
 
   // Сценарий риска
   if (r.riskScenario) {
-    const scenarioEl = document.getElementById('risk-scenario');
-    const textEl     = document.getElementById('risk-scenario-text');
-    scenarioEl.classList.remove('hidden');
-    textEl.textContent =
+    const el = document.getElementById('risk-scenario');
+    el.classList.remove('hidden');
+    document.getElementById('risk-scenario-text').textContent =
       `Директ подорожал на ${r.riskScenario.pctGrowth}% → ` +
       `CPL: ~${r.riskScenario.cplFrom.toLocaleString('ru')} → ` +
       `~${r.riskScenario.cplTo.toLocaleString('ru')} ₽`;
   }
 
   // Топ-3 проблемы
-  renderProblems(r.topProblems);
+  const problemsList = document.getElementById('problems-list');
+  problemsList.innerHTML = '';
+  if (!r.topProblems?.length) {
+    problemsList.innerHTML = '<div style="font-size:14px;color:var(--tg-hint)">Серьёзных проблем не выявлено 👍</div>';
+  } else {
+    r.topProblems.forEach(p => {
+      const card = document.createElement('div');
+      card.className = 'problem-card';
+      card.innerHTML = `<span class="problem-icon">⚡</span><span class="problem-text">${p.text}</span>`;
+      problemsList.appendChild(card);
+    });
+  }
 
   // Кнопка «Поделиться»
-  document.getElementById('btn-share').addEventListener('click', shareResult);
-}
-
-function renderRiskMap(r) {
-  const container = document.getElementById('risk-map');
-  container.innerHTML = '';
-
-  Object.values(r.blocks).forEach(block => {
-    const pct   = (block.score / block.max) * 100;
-    const color = scoreToColor(pct);
-
-    // Определяем иконку статуса
-    let flagIcon = '';
-    if (pct === 0)        flagIcon = '🔴';
-    else if (pct < 50)    flagIcon = '⚠️';
-
-    const row = document.createElement('div');
-    row.className = 'risk-row';
-    row.innerHTML = `
-      <span class="risk-row-icon">${block.icon}</span>
-      <span class="risk-row-label">${block.label}</span>
-      <div class="risk-bar-wrap">
-        <div class="risk-bar-fill" style="background:${color}"></div>
-      </div>
-      <span class="risk-row-score">${block.score}/${block.max}</span>
-      <span class="risk-row-flag">${flagIcon}</span>
-    `;
-    container.appendChild(row);
-
-    // Анимация полоски с задержкой
-    setTimeout(() => {
-      row.querySelector('.risk-bar-fill').style.width = pct + '%';
-    }, 200);
-  });
-}
-
-function renderProblems(problems) {
-  const container = document.getElementById('problems-list');
-  container.innerHTML = '';
-
-  if (!problems || problems.length === 0) {
-    container.innerHTML = '<div style="font-size:14px;color:var(--tg-hint);">Серьёзных проблем не выявлено 👍</div>';
-    return;
-  }
-
-  problems.forEach(p => {
-    const card = document.createElement('div');
-    card.className = 'problem-card';
-    card.innerHTML = `
-      <span class="problem-icon">⚡</span>
-      <span class="problem-text">${p.text}</span>
-    `;
-    container.appendChild(card);
-  });
-}
-
-/** Цвет полоски: от красного (0%) до зелёного (100%) */
-function scoreToColor(pct) {
-  if (pct >= 70) return '#43A047';
-  if (pct >= 40) return '#FB8C00';
-  return '#E53935';
-}
-
-/** Поделиться результатом через Telegram */
-function shareResult() {
-  tg.HapticFeedback.selectionChanged();
-  const r    = state.scoreResult;
-  const text = encodeURIComponent(
-    `Прошёл маркетинговый стресс-тест клиники и набрал ${r.total}/100 (${r.levelData.badge}).\n` +
-    `Проверьте свою клинику: @medmarket_bot` // ← замените на вашего бота
-  );
-  try {
-    tg.openTelegramLink(`https://t.me/share/url?url=https://t.me/medmarket_bot&text=${text}`);
-  } catch (_) {
-    // Fallback для браузера
-    navigator.clipboard?.writeText(decodeURIComponent(text));
-  }
+  document.getElementById('btn-share').onclick = () => {
+    tg.HapticFeedback.selectionChanged();
+    const text = encodeURIComponent(
+      `Прошёл маркетинговый стресс-тест клиники — ${r.total}/100 (${r.levelData.badge}).\nПроверьте свою клинику:`
+    );
+    try { tg.openTelegramLink(`https://t.me/share/url?url=https://t.me/YOUR_BOT&text=${text}`); }
+    catch (_) {}
+  };
 }
 
 // ─── ЭКРАН ФОРМЫ КОНТАКТОВ ────────────────────────────────────────────────────
 function initContactForm() {
-  // Автозаполнение имени из Telegram
   const user = tg.initDataUnsafe?.user || {};
-  const nameInput  = document.getElementById('input-name');
-  const phoneInput = document.getElementById('input-phone');
-
+  const nameInput = document.getElementById('input-name');
   if (user.first_name) {
-    nameInput.value = user.last_name
-      ? `${user.first_name} ${user.last_name}`
-      : user.first_name;
+    nameInput.value = [user.first_name, user.last_name].filter(Boolean).join(' ');
   }
 
-  // BackButton → возврат к результату
-  tg.BackButton.show();
-  tg.BackButton.onClick(() => {
-    goTo('screen-result', 'back');
-    tg.BackButton.hide();
-    setMainBtn('Получить план усиления — бесплатно', () => {
-      goTo('screen-contacts');
-      initContactForm();
-    });
-  });
-
-  // Сбрасываем согласие
   state.consentChecked = false;
   document.getElementById('consent-checkbox').classList.remove('checked');
 
-  // Ссылка на политику конфиденциальности
+  // Ссылка на политику
   const consentLink = document.getElementById('consent-link');
   consentLink.href = CONFIG.privacyUrl;
-  consentLink.addEventListener('click', (e) => {
-    e.preventDefault();
-    tg.openTelegramLink(CONFIG.privacyUrl);
-  });
+  consentLink.onclick = (e) => { e.preventDefault(); tg.openTelegramLink(CONFIG.privacyUrl); };
 
-  // Чекбокс согласия
-  document.getElementById('consent-wrap').addEventListener('click', () => {
+  // Чекбокс
+  const consentWrap = document.getElementById('consent-wrap');
+  // Убираем старый listener (клонированием)
+  const newConsentWrap = consentWrap.cloneNode(true);
+  consentWrap.parentNode.replaceChild(newConsentWrap, consentWrap);
+  newConsentWrap.querySelector('#consent-link').onclick =
+    consentLink.onclick;
+  newConsentWrap.addEventListener('click', (e) => {
+    if (e.target.id === 'consent-link') return;
     state.consentChecked = !state.consentChecked;
-    const cb = document.getElementById('consent-checkbox');
-    if (state.consentChecked) {
-      cb.classList.add('checked');
-    } else {
-      cb.classList.remove('checked');
-    }
+    newConsentWrap.querySelector('#consent-checkbox').classList.toggle('checked', state.consentChecked);
     tg.HapticFeedback.selectionChanged();
     validateForm();
   });
 
-  // Валидация при вводе телефона
-  phoneInput.addEventListener('input', () => {
-    formatPhone(phoneInput);
-    validateForm();
-  });
+  // Телефон
+  const phoneInput = document.getElementById('input-phone');
+  phoneInput.value = '';
+  phoneInput.oninput = () => { formatPhone(phoneInput); validateForm(); };
+
+  // BackButton
+  tg.BackButton.show();
+  tg.BackButton.offClick(handleContactBack);
+  tg.BackButton.onClick(handleContactBack);
 
   setMainBtn('Отправить', submitForm, false);
   validateForm();
 }
 
-/** Простое форматирование телефона */
-function formatPhone(input) {
-  let val = input.value.replace(/\D/g, '');
-  if (val.startsWith('8')) val = '7' + val.slice(1);
-  if (val.startsWith('7') && val.length > 1) {
-    val = val.slice(0, 11);
-    const parts = [
-      '+7',
-      val.length > 1  ? ` (${val.slice(1, 4)}`   : '',
-      val.length > 4  ? `) ${val.slice(4, 7)}`    : '',
-      val.length > 7  ? `-${val.slice(7, 9)}`     : '',
-      val.length > 9  ? `-${val.slice(9, 11)}`    : '',
-    ];
-    input.value = parts.join('');
-  }
+function handleContactBack() {
+  goTo('screen-result', 'back');
+  tg.BackButton.hide();
+  setMainBtn('Получить план усиления — бесплатно', () => {
+    goTo('screen-contacts');
+    initContactForm();
+  });
 }
 
-/** Проверяет валидность формы и включает/выключает MainButton */
+function formatPhone(input) {
+  let v = input.value.replace(/\D/g, '');
+  if (v.startsWith('8')) v = '7' + v.slice(1);
+  if (!v.startsWith('7')) v = '7' + v;
+  v = v.slice(0, 11);
+  let out = '+7';
+  if (v.length > 1)  out += ` (${v.slice(1, 4)}`;
+  if (v.length > 4)  out += `) ${v.slice(4, 7)}`;
+  if (v.length > 7)  out += `-${v.slice(7, 9)}`;
+  if (v.length > 9)  out += `-${v.slice(9, 11)}`;
+  input.value = out;
+}
+
 function validateForm() {
   const phone = document.getElementById('input-phone').value.replace(/\D/g, '');
   const valid = phone.length >= 11 && state.consentChecked;
   if (valid) {
     tg.MainButton.enable();
+    enableFallbackBtn();
   } else {
     tg.MainButton.disable();
+    disableFallbackBtn();
   }
-  renderFallbackBtn();
 }
 
-/** Отправка формы */
 async function submitForm() {
-  const name   = document.getElementById('input-name').value.trim();
-  const phone  = document.getElementById('input-phone').value.trim();
-  const clinic = document.getElementById('input-clinic').value.trim();
-  const r      = state.scoreResult;
+  const phone = document.getElementById('input-phone').value.replace(/\D/g, '');
+  if (phone.length < 11 || !state.consentChecked) return;
 
-  if (!phone) return;
-
-  // Показываем индикатор загрузки на кнопке
-  tg.MainButton.showProgress();
+  tg.MainButton.showProgress?.();
   tg.MainButton.disable();
+  disableFallbackBtn();
 
   const payload = {
-    name,
-    phone,
-    clinic:    clinic || null,
-    score:     r.total,
-    level:     r.level,
-    flags:     r.flags,
-    blocks: Object.fromEntries(
-      Object.entries(r.blocks).map(([k, v]) => [k, v.score])
-    ),
-    tg_user_id:  tg.initDataUnsafe?.user?.id       || null,
-    tg_username: tg.initDataUnsafe?.user?.username || null,
+    name:        document.getElementById('input-name').value.trim(),
+    phone:       document.getElementById('input-phone').value.trim(),
+    clinic:      document.getElementById('input-clinic').value.trim() || null,
+    score:       state.scoreResult.total,
+    level:       state.scoreResult.level,
+    flags:       state.scoreResult.flags,
+    blocks:      Object.fromEntries(Object.entries(state.scoreResult.blocks).map(([k,v]) => [k, v.score])),
+    tg_user_id:  tg.initDataUnsafe?.user?.id       ?? null,
+    tg_username: tg.initDataUnsafe?.user?.username ?? null,
     timestamp:   new Date().toISOString(),
   };
 
-  // Отправка на webhook (если настроен)
   if (CONFIG.webhookUrl) {
     try {
       await fetch(CONFIG.webhookUrl, {
-        method:  'POST',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(payload),
+        body: JSON.stringify(payload),
       });
-    } catch (err) {
-      console.warn('Webhook недоступен:', err);
-      // Продолжаем — не блокируем UX из-за ошибки отправки
+    } catch (e) {
+      console.warn('Webhook error:', e);
     }
   }
 
-  // Переход на экран подтверждения
-  tg.MainButton.hideProgress();
+  tg.MainButton.hideProgress?.();
   goTo('screen-done');
   initDoneScreen();
 }
@@ -734,37 +586,26 @@ function initDoneScreen() {
   hideMainBtn();
   tg.BackButton.hide();
 
-  // Данные менеджера из конфига
   document.getElementById('manager-name').textContent = CONFIG.managerName;
   document.getElementById('manager-role').textContent = CONFIG.managerRole;
-  document.getElementById('manager-avatar').textContent =
-    CONFIG.managerName.charAt(0).toUpperCase();
+  document.getElementById('manager-avatar').textContent = CONFIG.managerName[0];
 
-  // Кнопка «Канал агентства»
   const btnChannel = document.getElementById('btn-channel');
   btnChannel.querySelector('span:last-child').textContent = `Канал ${CONFIG.agencyName}`;
-  btnChannel.onclick = () => {
-    tg.openTelegramLink(CONFIG.channelUrl);
-  };
+  btnChannel.onclick = () => tg.openTelegramLink(CONFIG.channelUrl);
 
-  // Кнопка «Закрыть»
   document.getElementById('btn-close').onclick = () => {
-    tg.close();
+    if (isInTelegram) tg.close();
+    else window.close();
   };
 }
 
 // ─── ИНИЦИАЛИЗАЦИЯ ────────────────────────────────────────────────────────────
 function init() {
-  // Инициализируем Telegram WebApp
   tg.ready();
   tg.expand();
-
-  // Применяем тему
   applyTheme();
-
-  // Запускаем стартовый экран
   initWelcome();
 }
 
-// Запуск когда DOM готов
 document.addEventListener('DOMContentLoaded', init);
