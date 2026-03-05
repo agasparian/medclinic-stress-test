@@ -29,6 +29,7 @@ const state = {
   scoreResult:    null,
   consentChecked: false,
   mainBtnHandler: null, // текущий обработчик главной кнопки
+  backBtnHandler: null, // текущий обработчик кнопки назад
 };
 
 // ─── Вспомогательная DOM-кнопка (браузерный fallback) ────────────────────────
@@ -71,6 +72,52 @@ function disableFallbackBtn() {
 function enableFallbackBtn() {
   const btn = document.getElementById('fallback-btn');
   if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+}
+
+// ─── Вспомогательная DOM-кнопка "Назад" (браузерный fallback) ────────────────
+function showFallbackBackBtn() {
+  if (isInTelegram) return;
+
+  let btn = document.getElementById('fallback-back-btn');
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.id = 'fallback-back-btn';
+    btn.textContent = '←';
+    Object.assign(btn.style, {
+      position: 'fixed', top: '12px', left: '12px',
+      width: '36px', height: '36px', borderRadius: '50%',
+      background: 'var(--tg-secondary)', border: '1px solid rgba(0,0,0,0.1)',
+      fontSize: '18px', cursor: 'pointer', zIndex: '9999',
+      fontFamily: 'inherit', lineHeight: '1',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    });
+    document.body.appendChild(btn);
+    btn.addEventListener('click', () => {
+      if (state.backBtnHandler) state.backBtnHandler();
+    });
+  }
+  btn.style.display = 'flex';
+}
+
+function hideFallbackBackBtn() {
+  const btn = document.getElementById('fallback-back-btn');
+  if (btn) btn.style.display = 'none';
+}
+
+// ─── Управление кнопкой "Назад" ───────────────────────────────────────────────
+function showBackBtn(handler) {
+  if (state.backBtnHandler) tg.BackButton.offClick(state.backBtnHandler);
+  state.backBtnHandler = handler;
+  tg.BackButton.onClick(handler);
+  tg.BackButton.show();
+  showFallbackBackBtn();
+}
+
+function hideBackBtn() {
+  if (state.backBtnHandler) tg.BackButton.offClick(state.backBtnHandler);
+  state.backBtnHandler = null;
+  tg.BackButton.hide();
+  hideFallbackBackBtn();
 }
 
 // ─── Управление главной кнопкой ───────────────────────────────────────────────
@@ -150,7 +197,7 @@ function initWelcome() {
   const counter = document.getElementById('welcome-counter');
   if (counter) counter.textContent = `Уже прошли ${CONFIG.totalAudited.toLocaleString('ru')} клиник`;
 
-  tg.BackButton.hide();
+  hideBackBtn();
 
   // Проверяем незавершённый прогресс
   const savedAnswers = localStorage.getItem('stress_test_answers');
@@ -241,9 +288,7 @@ function renderQuestion() {
   q.options.forEach(opt => renderOption(list, q, opt));
 
   // BackButton
-  tg.BackButton.show();
-  tg.BackButton.offClick(handleBack);
-  tg.BackButton.onClick(handleBack);
+  showBackBtn(handleBack);
 
   updateQuizMainBtn(q);
 }
@@ -350,7 +395,7 @@ function saveProgress() {
 // ─── ЭКРАН ЗАГРУЗКИ ───────────────────────────────────────────────────────────
 function goToLoading() {
   hideMainBtn();
-  tg.BackButton.hide();
+  hideBackBtn();
   goTo('screen-loading');
 
   const textEl = document.getElementById('loader-text');
@@ -380,7 +425,7 @@ function goToLoading() {
 // ─── ЭКРАН РЕЗУЛЬТАТА ─────────────────────────────────────────────────────────
 function goToResult() {
   goTo('screen-result');
-  tg.BackButton.hide();
+  hideBackBtn();
   renderResult(state.scoreResult);
   setMainBtn('Получить план усиления — бесплатно', () => {
     goTo('screen-contacts');
@@ -501,9 +546,7 @@ function initContactForm() {
   phoneInput.oninput = () => { formatPhone(phoneInput); validateForm(); };
 
   // BackButton
-  tg.BackButton.show();
-  tg.BackButton.offClick(handleContactBack);
-  tg.BackButton.onClick(handleContactBack);
+  showBackBtn(handleContactBack);
 
   setMainBtn('Отправить', submitForm, false);
   validateForm();
@@ -511,7 +554,7 @@ function initContactForm() {
 
 function handleContactBack() {
   goTo('screen-result', 'back');
-  tg.BackButton.hide();
+  hideBackBtn();
   setMainBtn('Получить план усиления — бесплатно', () => {
     goTo('screen-contacts');
     initContactForm();
@@ -584,7 +627,7 @@ async function submitForm() {
 // ─── ЭКРАН ПОДТВЕРЖДЕНИЯ ──────────────────────────────────────────────────────
 function initDoneScreen() {
   hideMainBtn();
-  tg.BackButton.hide();
+  hideBackBtn();
 
   document.getElementById('manager-name').textContent = CONFIG.managerName;
   document.getElementById('manager-role').textContent = CONFIG.managerRole;
