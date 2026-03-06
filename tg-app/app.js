@@ -192,6 +192,51 @@ function applyTheme() {
   if (tg.colorScheme === 'dark') document.body.setAttribute('data-theme', 'dark');
 }
 
+// ─── ОФФЕР-МОДАЛКА ────────────────────────────────────────────────────────────
+const OFFER_SHOWN_KEY = 'medclinic_offer_shown';
+
+function closeOffer() {
+  const overlay = document.getElementById('offer-overlay');
+  overlay.classList.add('closing');
+  setTimeout(() => overlay.classList.add('hidden'), 220);
+}
+
+function initOffer() {
+  if (localStorage.getItem(OFFER_SHOWN_KEY)) return; // уже показывали
+
+  const o = CONFIG.offer;
+  if (!o) return;
+
+  // Заполняем контент
+  document.getElementById('offer-emoji').textContent    = o.emoji;
+  document.getElementById('offer-title').textContent    = o.title;
+  document.getElementById('offer-subtitle').textContent = o.subtitle;
+
+  const ul = document.getElementById('offer-bullets');
+  ul.innerHTML = '';
+  o.bullets.forEach(text => {
+    const li = document.createElement('li');
+    li.textContent = text;
+    ul.appendChild(li);
+  });
+
+  const btn = document.getElementById('offer-btn');
+  btn.textContent = o.btnText;
+  btn.onclick = () => {
+    localStorage.setItem(OFFER_SHOWN_KEY, '1');
+    closeOffer();
+    try { tg.openTelegramLink(o.btnUrl); } catch (_) { window.open(o.btnUrl, '_blank'); }
+  };
+
+  document.getElementById('offer-skip').onclick = () => {
+    localStorage.setItem(OFFER_SHOWN_KEY, '1');
+    closeOffer();
+  };
+
+  // Показываем
+  document.getElementById('offer-overlay').classList.remove('hidden');
+}
+
 // ─── ЭКРАН 1: СТАРТ ───────────────────────────────────────────────────────────
 function animateCounter(el, target, duration = 1200) {
   const start = performance.now();
@@ -665,6 +710,7 @@ function init() {
   tg.expand();
   applyTheme();
   initWelcome();
+  initOffer();
 }
 
 document.addEventListener('DOMContentLoaded', init);
