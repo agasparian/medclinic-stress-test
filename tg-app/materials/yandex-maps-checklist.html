@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Чеклист: 10 минут в Яндекс.Картах — МедСпринт</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f4f6f9;
+      color: #1a1a2e;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    .page {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 24px 16px 48px;
+    }
+
+    /* ─── Header ─── */
+    .header {
+      background: linear-gradient(135deg, #e65100 0%, #ff7043 100%);
+      border-radius: 20px;
+      padding: 32px 28px 28px;
+      color: #fff;
+      margin-bottom: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::after {
+      content: '';
+      position: absolute;
+      right: -20px; bottom: -30px;
+      width: 160px; height: 160px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+      pointer-events: none;
+    }
+    .header-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      opacity: 0.8;
+      margin-bottom: 8px;
+    }
+    .header-title {
+      font-size: 26px;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 8px;
+    }
+    .header-sub {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    .header-time {
+      display: inline-block;
+      margin-top: 12px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 99px;
+      padding: 4px 14px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    /* ─── Key stat ─── */
+    .key-stat {
+      background: #fff;
+      border-radius: 16px;
+      padding: 18px 20px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    }
+    .key-stat-icon { font-size: 32px; flex-shrink: 0; }
+    .key-stat-text { font-size: 14px; color: #333; line-height: 1.5; }
+    .key-stat-text strong { color: #e65100; font-size: 16px; }
+
+    /* ─── How to open ─── */
+    .how-to {
+      background: #e3f2fd;
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      color: #1565c0;
+      line-height: 1.5;
+    }
+    .how-to strong { font-weight: 700; }
+
+    /* ─── Section ─── */
+    .section {
+      background: #fff;
+      border-radius: 16px;
+      padding: 20px 20px 12px;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .section-icon {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .section-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #1a1a2e;
+    }
+    .section-time {
+      margin-left: auto;
+      font-size: 12px;
+      font-weight: 600;
+      color: #888;
+      background: #f0f0f4;
+      padding: 3px 10px;
+      border-radius: 99px;
+    }
+
+    /* ─── Checklist item ─── */
+    .check-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #f5f5f5;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .check-item:last-child { border-bottom: none; }
+
+    .check-item input[type="checkbox"] { display: none; }
+
+    .check-box {
+      width: 22px; height: 22px;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      flex-shrink: 0;
+      margin-top: 1px;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+      background: #fff;
+    }
+    .check-item input:checked ~ .check-box {
+      background: #ff7043;
+      border-color: #ff7043;
+    }
+    .check-item input:checked ~ .check-box::after {
+      content: '✓';
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .check-content { flex: 1; }
+    .check-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1a1a2e;
+      line-height: 1.3;
+      transition: color 0.15s;
+    }
+    .check-item input:checked ~ .check-content .check-title {
+      color: #aaa;
+      text-decoration: line-through;
+    }
+    .check-hint {
+      font-size: 12px;
+      color: #999;
+      margin-top: 3px;
+      line-height: 1.4;
+    }
+
+    /* ─── Progress ─── */
+    .progress-wrap {
+      background: #fff;
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    }
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 8px;
+    }
+    .progress-track {
+      height: 8px;
+      background: #f0f0f4;
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #ff7043, #ffa726);
+      border-radius: 99px;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    /* ─── Tip box ─── */
+    .tip-box {
+      background: #fff8e1;
+      border: 1.5px solid #ffe082;
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      color: #5d4037;
+      line-height: 1.55;
+    }
+    .tip-box-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #e65100;
+      margin-bottom: 6px;
+    }
+
+    /* ─── Print button ─── */
+    .print-btn {
+      display: block;
+      width: 100%;
+      max-width: 300px;
+      margin: 0 auto 20px;
+      padding: 13px 0;
+      background: #ff7043;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    /* ─── Footer ─── */
+    .footer { text-align: center; }
+    .footer-logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .footer-logo-box {
+      width: 28px; height: 28px;
+      background: #2AABEE;
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 800;
+    }
+    .footer-logo-name { font-size: 14px; font-weight: 700; color: #1a1a2e; }
+    .footer-tagline { font-size: 12px; color: #aaa; }
+
+    /* ─── Icon colors ─── */
+    .icon-orange { background: #fff3e0; }
+    .icon-blue   { background: #e3f2fd; }
+    .icon-green  { background: #e8f5e9; }
+    .icon-purple { background: #f3e5f5; }
+
+    @media print {
+      body { background: #fff; }
+      .page { padding: 0; }
+      .print-btn { display: none; }
+      .check-box { border: 2px solid #333 !important; background: #fff !important; }
+      .check-box::after { display: none !important; }
+      .progress-wrap { display: none; }
+      .card, .section { box-shadow: none; }
+    }
+    @media (max-width: 480px) {
+      .header-title { font-size: 22px; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-label">Бесплатный чеклист — МедСпринт</div>
+    <div class="header-title">10 минут<br>в Яндекс.Картах</div>
+    <div class="header-sub">Канал №1 по входящим звонкам среди российских клиник</div>
+    <div class="header-time">⏱ ~10 минут · 18 пунктов</div>
+  </div>
+
+  <!-- Key stat -->
+  <div class="key-stat">
+    <div class="key-stat-icon">📊</div>
+    <div class="key-stat-text">
+      <strong>Рейтинг 4.5+ = в 2.3× больше обращений</strong><br>
+      чем у клиники с рейтингом 3.5 — по данным Callibri, 605 клиник, 2025
+    </div>
+  </div>
+
+  <!-- How to open -->
+  <div class="how-to">
+    <strong>Как открыть:</strong> Яндекс → Карты → найдите свою клинику → нажмите «Редактировать» или откройте <strong>Яндекс.Бизнес</strong> (business.yandex.ru) → «Профиль»
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-wrap">
+    <div class="progress-label">
+      <span>Прогресс</span>
+      <span id="progress-count">0 / 18</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progress-fill"></div>
+    </div>
+  </div>
+
+  <!-- Section 1: Basic info -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon icon-orange">📋</div>
+      <div class="section-title">Основная информация</div>
+      <div class="section-time">~5 мин</div>
+    </div>
+
+    <label class="check-item">
+      <input type="checkbox" class="check-input">
+      <div class="check-box"></div>
+      <div class="check-content">
+        <div class="check-title">Название клиники — точное и официальное</div>
+        <div class="check-hint">Без лишних слов типа «лучшая» или «№1» — Яндекс может снизить рейтинг за ключевые слова в названии</div>
+      </div>
+    </label>
+
+    <label class="check-item">
+      <input type="checkbox" class="check-input">
+      <div class="check-box"></div>
+      <div class="check-content">
+        <div class="check-title">Категория — выбрана правильно</div>
+        <div class="check-hint">Например: «Многопрофильная клиника», «Стоматология», «Медицинский центр». Можно добавить несколько категорий.</div>
+      </div>
+    </label>
+
+    <label class="check-item">
+      <input type="checkbox" class="check-input">
+      <div class="check-box"></div>
+      <div class="check-content">
+        <div class="check-title">Адрес — точный, с этажом и ориентиром</div>
+        <div class="check-hint">Добавьте: «2 этаж, вход со двора» или «рядом с метро». Это снижает тревогу при первом визите.</div>
+      </div>
+    </label>
+
+    <label class="check-item">
+      <input type="checkbox" class="check-input">
+      <div class="check-box"></div>
+      <div class="check-content">
+        <div class="check-title">Телефон — кликабельный, актуальный</div>
+        <div class="check-hint">Проверьте, что номер работает. Лишний пробел или опечатка = потеря звонка.</div>
+      </div>
+    </label>
+
+    <label class="check-item">
+      <input type="checkbox" class="check-input">
+      <div class="check-box"></div>
+      <div class="check-content">
+        <div class="check-title">Сайт — ссылка добавлена</div>
+        <div class="check-hint">Даже если сайт устарел — его отсутствие снижает доверие и ранжирование.</div>
+      </div>
+    </label>
+
+    <label class="check-item">
+      <input type="checkbox" class="check-input">
+      <div class="check-box"></div>
+      <div class="check-content">
+        <div class="check-title">Режим работы — заполнен по всем дням</div>
+        <div class="check-hint">Включая субботу и воскресенье. Если клиника работает в праздники — отметьте это.</div>
+      </div>
+    </label>
+
+    <label class="check-item">
+      <input type="checkbox" class="check-input">
+      <div class="check-box"></div>
+      <div class="check-content">
+        <div class="check-title">Описание клиники — заполнено (3–5 предложений)</div>
+        <div class="check-hint">Специализация + опыт + ключевое преимущество. Не «мы занимаемся лечением», а «специализируемся на детской ортопедии с 2010 года».</div>
+      </div>
+    </label>
+  </div>
+
+  <!-- Section 2: Photos -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon icon-blue">📸</div>
+      <div class="section-title">Фотографии</div>
+      <div class="section-time">~3 мин</div>
+    </div>
+
+    <label class="check-item">
+      <input type="checkbox" class="check-input">
+      <div class="check-box"></div>
+      <div class="check-content">
+        <div class="check-title">Обложка — современное горизонтальное фото (16:9)</div>
+        <div class="check-hint">Лучше всего: фасад здания или светлый ресепшн. Избегайте логотипа на белом фоне.</div>
+      </div>
+    </label>
+
+    <label class="check-item">
+      <input type="checkbox" class="check-input">
+      <div class="check-box"></div>
+      <div class="check-content">
+        <div class="check-title">Фото интерьера — минимум 3 снимка</div>
+        <div class="check-hint">Ресепшн, коридор, один из кабинетов. Светлые, чистые, без людей в кадре.</div>
+      </div>
+    </label>
+
+    <label class="check-item">
+      <input type="checkbox" class="check-input">
+      <div class="check-box"></div>
+      <div class="check-content">
+        <div class="check-title">Фото фасада и вход — чтобы легко найти</div>
+        <div class="check-hint">Особенно важно если вход неочевидный или клиника в бизнес-центре.</div>
+      </div>
+    </label>
+
+    <label class="check-item">
+      <input type="checkbox" class="check-input">
+      <div class="check-box"></div>
+      <div class="check-content">
+        <div class="check-title">Фото врачей — хотя бы одно командное</div>
+        <div class="check-hint">Люди покупают у людей. Лица врачей повышают доверие и конверсию из просмотра в звонок.</div>
+      </div>
+    </label>
+  </div>
+
+  <!-- Section 3: Reviews -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon icon-green">⭐</div>
+      <div class="section-title">Отзывы</div>
+      <div class="section-time">~2 мин</div>
+    </div>
+
+    <label class="check-item">
+      <input type="checkbox" class="check-input">
+      <div class="check-box"></div>
+      <div class="check-content">
+        <div class="check-title">Все отзывы за последние 30 дней — отвечено</div>
+        <div class="check-hint">Яндекс ранжирует активные профили выше. Даже «Спасибо за ваш визит» — лучше чем молчание.</div>
+      </div>
+    </label>
+
+    <label class="check-item">
+      <input type="checkbox" class="check-input">
+      <div class="check-box"></div>
+      <div class="check-content">
+        <div class="check-title">На негативные отзывы — нейтральный деловой ответ</div>
+        <div class="check-hint">Без оправданий и обвинений. Формула: признание + действие + приглашение решить лично. Пример: «Жаль, что так вышло. Свяжитесь с нами по [телефон] — разберёмся.»</div>
+      </div>
+    </label>
+
+    <label class="check-item">
+      <input type="checkbox" class="check-input">
+      <div class="check-box"></div>
+      <div class="check-content">
+        <div class="check-title">Попросить 3–5 постоянных пациентов оставить отзыв</div>
+        <div class="check-hint">Отправьте прямую ссылку на форму отзыва в WhatsApp или SMS. Самый быстрый способ поднять рейтинг.</div>
+      </div>
+    </label>
+  </div>
+
+  <!-- Section 4: Bonus -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon icon-purple">🚀</div>
+      <div class="section-title">Бонус: ещё +15 мин роста</div>
+      <div class="section-time">Дополнительно</div>
+    </div>
+
+    <label class="check-item">
+      <input type="checkbox" class="check-input">
+      <div class="check-box"></div>
+      <div class="check-content">
+        <div class="check-title">Услуги с ценами — добавлены основные позиции</div>
+        <div class="check-hint">Хотя бы первичный приём и 3–5 популярных услуг. Прайс увеличивает конверсию — пациент уже «примеряет» цену.</div>
+      </div>
+    </label>
+
+    <label class="check-item">
+      <input type="checkbox" class="check-input">
+      <div class="check-box"></div>
+      <div class="check-content">
+        <div class="check-title">Вопросы и ответы — заполнить 3–5 FAQ</div>
+        <div class="check-hint">«Нужна ли запись?», «Принимаете ли ДМС?», «Есть ли парковка?». Снимают возражения до звонка.</div>
+      </div>
+    </label>
+
+    <label class="check-item">
+      <input type="checkbox" class="check-input">
+      <div class="check-box"></div>
+      <div class="check-content">
+        <div class="check-title">Добавить клинику в 2GIS (если ещё нет)</div>
+        <div class="check-hint">2GIS занимает 10–20% геозапросов. Регистрация бесплатная: 2gis.ru/business.</div>
+      </div>
+    </label>
+
+    <label class="check-item">
+      <input type="checkbox" class="check-input">
+      <div class="check-box"></div>
+      <div class="check-content">
+        <div class="check-title">Настроить уведомления об отзывах (email или Telegram)</div>
+        <div class="check-hint">Яндекс.Бизнес → Настройки → Уведомления. Реагируйте на отзывы в течение суток.</div>
+      </div>
+    </label>
+  </div>
+
+  <!-- Tip -->
+  <div class="tip-box">
+    <div class="tip-box-title">💡 Главный вывод</div>
+    Яндекс.Карты — единственный крупный канал с нулевой стоимостью лида.
+    Большинство клиник имеют профиль заполненный на 30–50%.
+    Полное заполнение занимает 1 вечер и может дать +20–40% к входящим звонкам.
+  </div>
+
+  <!-- Print button -->
+  <button class="print-btn" onclick="window.print()">🖨 Сохранить / Распечатать</button>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-logo">
+      <div class="footer-logo-box">МС</div>
+      <div class="footer-logo-name">МедСпринт</div>
+    </div>
+    <div class="footer-tagline">Маркетинг медицинских клиник</div>
+  </div>
+
+</div>
+
+<script>
+  const inputs = document.querySelectorAll('.check-input');
+  const fill = document.getElementById('progress-fill');
+  const count = document.getElementById('progress-count');
+  const total = inputs.length;
+
+  function update() {
+    const done = document.querySelectorAll('.check-input:checked').length;
+    fill.style.width = (done / total * 100) + '%';
+    count.textContent = done + ' / ' + total;
+  }
+
+  inputs.forEach(inp => inp.addEventListener('change', update));
+</script>
+</body>
+</html>

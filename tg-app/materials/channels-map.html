@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Карта каналов привлечения пациентов 2025 — МедСпринт</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f4f6f9;
+      color: #1a1a2e;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    .page {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 24px 16px 48px;
+    }
+
+    /* ─── Header ─── */
+    .header {
+      background: linear-gradient(135deg, #0e7fc8 0%, #2AABEE 100%);
+      border-radius: 20px;
+      padding: 32px 28px 28px;
+      color: #fff;
+      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::after {
+      content: '';
+      position: absolute;
+      right: -30px; top: -30px;
+      width: 180px; height: 180px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+      pointer-events: none;
+    }
+    .header-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      opacity: 0.8;
+      margin-bottom: 8px;
+    }
+    .header-title {
+      font-size: 26px;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 10px;
+    }
+    .header-sub {
+      font-size: 14px;
+      opacity: 0.85;
+    }
+
+    /* ─── Hero stat ─── */
+    .hero-stat {
+      background: #fff;
+      border-radius: 16px;
+      padding: 20px 24px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    }
+    .hero-stat-icon {
+      font-size: 36px;
+      flex-shrink: 0;
+    }
+    .hero-stat-text {
+      font-size: 15px;
+      font-weight: 500;
+      color: #1a1a2e;
+      line-height: 1.4;
+    }
+    .hero-stat-text strong {
+      color: #0e7fc8;
+      display: block;
+      font-size: 17px;
+      margin-bottom: 2px;
+    }
+
+    /* ─── Section card ─── */
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: #888;
+      margin-bottom: 20px;
+    }
+
+    /* ─── Channel rows ─── */
+    .channel-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: start;
+      gap: 8px;
+      padding: 14px 0;
+      border-bottom: 1px solid #f0f0f4;
+    }
+    .channel-row:last-child { border-bottom: none; }
+
+    .channel-left {}
+    .channel-name-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .channel-emoji { font-size: 18px; }
+    .channel-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1a1a2e;
+    }
+    .channel-desc {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 10px;
+      padding-left: 26px;
+    }
+
+    .bar-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-left: 26px;
+    }
+    .bar-track {
+      flex: 1;
+      height: 7px;
+      background: #f0f0f4;
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 99px;
+    }
+    .bar-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #555;
+      white-space: nowrap;
+      min-width: 60px;
+      text-align: right;
+    }
+
+    .channel-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+      padding-top: 2px;
+    }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 99px;
+      white-space: nowrap;
+    }
+    .badge-green  { background: #e8f5e9; color: #2e7d32; }
+    .badge-yellow { background: #fff8e1; color: #f57f17; }
+    .badge-red    { background: #fce4ec; color: #c62828; }
+    .badge-blue   { background: #e3f2fd; color: #1565c0; }
+    .badge-gray   { background: #f0f0f4; color: #666; }
+
+    .trend {
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .trend-up2   { color: #2e7d32; }
+    .trend-up3   { color: #1b5e20; }
+    .trend-flat  { color: #888; }
+    .trend-down  { color: #c62828; }
+
+    /* ─── Risk insight ─── */
+    .risk-box {
+      background: #fff8e1;
+      border: 1.5px solid #ffe082;
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin-bottom: 16px;
+    }
+    .risk-box-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #e65100;
+      margin-bottom: 8px;
+    }
+    .risk-box p {
+      font-size: 14px;
+      color: #5d4037;
+      line-height: 1.5;
+    }
+    .risk-box strong { color: #bf360c; }
+
+    /* ─── Source ─── */
+    .source {
+      font-size: 11px;
+      color: #aaa;
+      text-align: center;
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    /* ─── Footer ─── */
+    .footer {
+      text-align: center;
+    }
+    .footer-logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .footer-logo-box {
+      width: 28px; height: 28px;
+      background: #2AABEE;
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .footer-logo-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1a1a2e;
+    }
+    .footer-tagline {
+      font-size: 12px;
+      color: #aaa;
+    }
+
+    /* ─── Print button ─── */
+    .print-btn {
+      display: block;
+      width: 100%;
+      max-width: 300px;
+      margin: 0 auto 20px;
+      padding: 13px 0;
+      background: #2AABEE;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+    }
+    .print-btn:active { opacity: 0.85; }
+
+    @media print {
+      body { background: #fff; }
+      .page { padding: 0; }
+      .print-btn { display: none; }
+      .card, .hero-stat, .risk-box { box-shadow: none; }
+    }
+    @media (max-width: 480px) {
+      .header-title { font-size: 22px; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-label">Бесплатный материал — МедСпринт</div>
+    <div class="header-title">Карта каналов привлечения<br>пациентов 2025</div>
+    <div class="header-sub">Данные: Callibri — 1,15 млн обращений, 605 клиник</div>
+  </div>
+
+  <!-- Hero stat -->
+  <div class="hero-stat">
+    <div class="hero-stat-icon">📍</div>
+    <div class="hero-stat-text">
+      <strong>Яндекс.Карты — канал №1 по звонкам в 2024</strong>
+      Клиники с рейтингом 4.5+ получают в <strong style="color:#e65100;font-size:inherit">2.3×</strong> больше обращений, чем с рейтингом 3.5
+    </div>
+  </div>
+
+  <!-- Channels table -->
+  <div class="card">
+    <div class="card-title">8 каналов — доля обращений и стоимость лида</div>
+
+    <!-- 1. Яндекс.Карты -->
+    <div class="channel-row">
+      <div class="channel-left">
+        <div class="channel-name-wrap">
+          <span class="channel-emoji">📍</span>
+          <span class="channel-name">Яндекс.Карты / 2GIS</span>
+        </div>
+        <div class="channel-desc">90%+ карт-трафика. Лидер по входящим звонкам.</div>
+        <div class="bar-wrap">
+          <div class="bar-track"><div class="bar-fill" style="width:50%;background:#2AABEE"></div></div>
+          <div class="bar-label">15–25%</div>
+        </div>
+      </div>
+      <div class="channel-right">
+        <span class="badge badge-green">Лид: низкий</span>
+        <span class="trend trend-up2">↑↑ Растёт</span>
+      </div>
+    </div>
+
+    <!-- 2. SEO -->
+    <div class="channel-row">
+      <div class="channel-left">
+        <div class="channel-name-wrap">
+          <span class="channel-emoji">🔍</span>
+          <span class="channel-name">SEO / Органика Яндекс</span>
+        </div>
+        <div class="channel-desc">45.8% сайт-трафика, но агрегаторы занимают топ-10.</div>
+        <div class="bar-wrap">
+          <div class="bar-track"><div class="bar-fill" style="width:62%;background:#43a047"></div></div>
+          <div class="bar-label">20–30%</div>
+        </div>
+      </div>
+      <div class="channel-right">
+        <span class="badge badge-green">Лид: низкий</span>
+        <span class="trend trend-flat">→ Стабильно</span>
+      </div>
+    </div>
+
+    <!-- 3. Директ -->
+    <div class="channel-row">
+      <div class="channel-left">
+        <div class="channel-name-wrap">
+          <span class="channel-emoji">📢</span>
+          <span class="channel-name">Яндекс.Директ</span>
+        </div>
+        <div class="channel-desc">Ставки +60–120% в 2023–2024. Риск зависимости.</div>
+        <div class="bar-wrap">
+          <div class="bar-track"><div class="bar-fill" style="width:67%;background:#ef5350"></div></div>
+          <div class="bar-label">20–35%</div>
+        </div>
+      </div>
+      <div class="channel-right">
+        <span class="badge badge-red">Лид: высокий</span>
+        <span class="trend trend-down">↓ Дорожает</span>
+      </div>
+    </div>
+
+    <!-- 4. Агрегаторы -->
+    <div class="channel-row">
+      <div class="channel-left">
+        <div class="channel-name-wrap">
+          <span class="channel-emoji">🏥</span>
+          <span class="channel-name">Агрегаторы</span>
+        </div>
+        <div class="channel-desc">ПроДокторов, НаПоправку, СберЗдоровье — 60% выдачи по медзапросам.</div>
+        <div class="bar-wrap">
+          <div class="bar-track"><div class="bar-fill" style="width:37%;background:#ff9800"></div></div>
+          <div class="bar-label">10–20%</div>
+        </div>
+      </div>
+      <div class="channel-right">
+        <span class="badge badge-yellow">Лид: 15–30%</span>
+        <span class="trend trend-up2">↑ Растёт</span>
+      </div>
+    </div>
+
+    <!-- 5. Сарафан -->
+    <div class="channel-row">
+      <div class="channel-left">
+        <div class="channel-name-wrap">
+          <span class="channel-emoji">👥</span>
+          <span class="channel-name">Сарафанное радио</span>
+        </div>
+        <div class="channel-desc">Не виден в аналитике, но реально высокий % у устоявшихся клиник.</div>
+        <div class="bar-wrap">
+          <div class="bar-track"><div class="bar-fill" style="width:75%;background:#7e57c2"></div></div>
+          <div class="bar-label">20–40%</div>
+        </div>
+      </div>
+      <div class="channel-right">
+        <span class="badge badge-green">Лид: ~₀</span>
+        <span class="trend trend-flat">→ Стабильно</span>
+      </div>
+    </div>
+
+    <!-- 6. Соцсети -->
+    <div class="channel-row">
+      <div class="channel-left">
+        <div class="channel-name-wrap">
+          <span class="channel-emoji">📱</span>
+          <span class="channel-name">Соцсети (VK, Instagram, YouTube)</span>
+        </div>
+        <div class="channel-desc">Работает на доверие, не на прямые лиды. Данные Callibri: 2.2% контактов.</div>
+        <div class="bar-wrap">
+          <div class="bar-track"><div class="bar-fill" style="width:8%;background:#90a4ae"></div></div>
+          <div class="bar-label">2–5%</div>
+        </div>
+      </div>
+      <div class="channel-right">
+        <span class="badge badge-yellow">Лид: средний</span>
+        <span class="trend trend-flat">→ Низко</span>
+      </div>
+    </div>
+
+    <!-- 7. Telegram -->
+    <div class="channel-row">
+      <div class="channel-left">
+        <div class="channel-name-wrap">
+          <span class="channel-emoji">✈️</span>
+          <span class="channel-name">Telegram-канал клиники</span>
+        </div>
+        <div class="channel-desc">База своя — нулевая зависимость от платформ. 2.6% контактов (мессенджеры).</div>
+        <div class="bar-wrap">
+          <div class="bar-track"><div class="bar-fill" style="width:8%;background:#29b6f6"></div></div>
+          <div class="bar-label">1–5%</div>
+        </div>
+      </div>
+      <div class="channel-right">
+        <span class="badge badge-green">Лид: низкий</span>
+        <span class="trend trend-up2">↑↑ Растёт</span>
+      </div>
+    </div>
+
+    <!-- 8. GEO / ИИ -->
+    <div class="channel-row">
+      <div class="channel-left">
+        <div class="channel-name-wrap">
+          <span class="channel-emoji">🤖</span>
+          <span class="channel-name">GEO / ИИ-нейросети</span>
+        </div>
+        <div class="channel-desc">ChatGPT, Яндекс GPT, Claude — пациенты спрашивают «какая клиника лучше».</div>
+        <div class="bar-wrap">
+          <div class="bar-track"><div class="bar-fill" style="width:3%;background:#ab47bc"></div></div>
+          <div class="bar-label">&lt;2%</div>
+        </div>
+      </div>
+      <div class="channel-right">
+        <span class="badge badge-green">Лид: ~₀</span>
+        <span class="trend trend-up3">↑↑↑ Взрывной</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Risk insight -->
+  <div class="risk-box">
+    <div class="risk-box-title">⚠️ Зона риска у большинства клиник</div>
+    <p>
+      <strong>Директ + Агрегаторы + Карты = 45–80%</strong> всех обращений.<br>
+      При этом только Карты — бесплатные. Директ дорожает, агрегаторы берут 15–30% комиссии.<br><br>
+      Клиники с долей платных каналов &gt;70% — в зоне высокого риска при росте ставок.
+    </p>
+  </div>
+
+  <!-- Source -->
+  <div class="source">
+    Источник: Callibri — 1,15 млн обращений, 605 медицинских клиник, 2025.<br>
+    UIS (диагностика отрасли 2024), НаПоправку, ПроДокторов.
+  </div>
+
+  <!-- Print button -->
+  <button class="print-btn" onclick="window.print()">🖨 Сохранить / Распечатать</button>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-logo">
+      <div class="footer-logo-box">МС</div>
+      <div class="footer-logo-name">МедСпринт</div>
+    </div>
+    <div class="footer-tagline">Маркетинг медицинских клиник</div>
+  </div>
+
+</div>
+</body>
+</html>
