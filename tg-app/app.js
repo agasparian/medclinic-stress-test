@@ -258,6 +258,13 @@ function initWelcome() {
     setTimeout(() => animateCounter(counter, CONFIG.totalAudited), 400);
   }
 
+  // Персональное приветствие по имени из Telegram
+  const greeting = document.getElementById('welcome-greeting');
+  if (greeting) {
+    const firstName = tg.initDataUnsafe?.user?.first_name;
+    greeting.textContent = firstName ? `Привет, ${firstName}! 👋` : '';
+  }
+
   hideBackBtn();
 
   // Проверяем незавершённый прогресс
@@ -562,10 +569,11 @@ function renderResult(r) {
   // Кнопка «Поделиться»
   document.getElementById('btn-share').onclick = () => {
     tg.HapticFeedback.selectionChanged();
+    const botUrl = `https://t.me/${CONFIG.botUsername}`;
     const text = encodeURIComponent(
       `Прошёл маркетинговый стресс-тест клиники — ${r.total}/100 (${r.levelData.badge}).\nПроверьте свою клинику:`
     );
-    try { tg.openTelegramLink(`https://t.me/share/url?url=https://t.me/YOUR_BOT&text=${text}`); }
+    try { tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(botUrl)}&text=${text}`); }
     catch (_) {}
   };
 }

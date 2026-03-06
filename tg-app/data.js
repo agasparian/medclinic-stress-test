@@ -20,6 +20,8 @@ const CONFIG = {
   avgScore: 61,
   // Данные источника (подпись под средним баллом)
   avgSource: 'Callibri, 605 клиник',
+  // Username бота без @ — для кнопки «Поделиться с другом»
+  botUsername: 'clinic_marketing_stress_test_bot',
 
   // Оффер-экран (показывается один раз при первом открытии)
   offer: {
