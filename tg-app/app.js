@@ -663,29 +663,30 @@ async function submitForm() {
   tg.MainButton.disable();
   disableFallbackBtn();
 
-  const payload = {
-    name:        document.getElementById('input-name').value.trim(),
-    phone:       document.getElementById('input-phone').value.trim(),
-    clinic:      document.getElementById('input-clinic').value.trim() || null,
-    score:       state.scoreResult.total,
-    level:       state.scoreResult.level,
-    flags:       state.scoreResult.flags,
-    blocks:      Object.fromEntries(Object.entries(state.scoreResult.blocks).map(([k,v]) => [k, v.score])),
-    tg_user_id:  tg.initDataUnsafe?.user?.id       ?? null,
-    tg_username: tg.initDataUnsafe?.user?.username ?? null,
-    timestamp:   new Date().toISOString(),
-  };
+  try {
+    const r = state.scoreResult;
+    const payload = {
+      name:        document.getElementById('input-name').value.trim(),
+      phone:       document.getElementById('input-phone').value.trim(),
+      clinic:      document.getElementById('input-clinic')?.value.trim() || null,
+      score:       r?.total    ?? null,
+      level:       r?.level    ?? null,
+      flags:       r?.flags    ?? [],
+      blocks:      r?.blocks ? Object.fromEntries(Object.entries(r.blocks).map(([k,v]) => [k, v.score])) : {},
+      tg_user_id:  tg.initDataUnsafe?.user?.id       ?? null,
+      tg_username: tg.initDataUnsafe?.user?.username ?? null,
+      timestamp:   new Date().toISOString(),
+    };
 
-  if (CONFIG.webhookUrl) {
-    try {
+    if (CONFIG.webhookUrl) {
       await fetch(CONFIG.webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-    } catch (e) {
-      console.warn('Webhook error:', e);
     }
+  } catch (e) {
+    console.warn('Submit error:', e);
   }
 
   tg.MainButton.hideProgress?.();
