@@ -32,7 +32,16 @@ export async function getGoogleAccessToken() {
     return _tokenCache.token;
   }
 
-  const sa  = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT);
+  const saRaw = process.env.GOOGLE_SERVICE_ACCOUNT;
+  if (!saRaw) {
+    throw new Error(`GOOGLE_SERVICE_ACCOUNT env var is ${saRaw === undefined ? 'undefined' : 'empty string'}`);
+  }
+  let sa;
+  try {
+    sa = JSON.parse(saRaw);
+  } catch (e) {
+    throw new Error(`GOOGLE_SERVICE_ACCOUNT JSON parse failed (length=${saRaw.length}, starts="${saRaw.slice(0, 20)}"): ${e.message}`);
+  }
   const now = Math.floor(Date.now() / 1000);
 
   const header  = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url');
