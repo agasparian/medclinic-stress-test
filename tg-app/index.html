@@ -42,7 +42,7 @@
           <div class="welcome-avatar" style="background:#7E57C2">О</div>
           <div class="welcome-avatar" style="background:#26A69A">Д</div>
         </div>
-        <div class="welcome-counter" id="welcome-counter">Уже прошли 1 247 клиник</div>
+        <div class="welcome-counter" id="welcome-counter">Уже прошли 0 клиник</div>
       </div>
 
       <!-- Что проверяем -->
@@ -67,7 +67,7 @@
         </div>
         <div class="welcome-bullet">
           <div class="welcome-bullet-icon">✓</div>
-          <span>Результат сразу — без звонка</span>
+          <span>Сравнение с 605 клиниками ниши</span>
         </div>
       </div>
 
@@ -178,6 +178,13 @@
         <span>Поделиться результатом</span>
       </button>
 
+      <!-- Прямой контакт (только для high/critical) -->
+      <div class="expert-contact hidden" id="expert-contact">
+        <button class="expert-contact-btn" id="btn-expert-contact">
+          <span>✈️</span><span>Написать эксперту напрямую</span>
+        </button>
+      </div>
+
     </div>
     <!-- MainButton «Получить план усиления — бесплатно» через Telegram API -->
   </div>
@@ -190,9 +197,9 @@
     <div class="screen-content">
 
       <div class="contacts-header">
-        <h2 class="contacts-title">Куда отправить детальный план?</h2>
+        <h2 class="contacts-title">Оставьте контакт — разберём ваши точки роста</h2>
         <p class="contacts-subtitle">
-          Эксперт свяжется в течение 2 часов и разберёт ваши точки роста
+          Эксперт свяжется в рабочие часы (пн–пт, 9–20) и подготовит план усиления
         </p>
       </div>
 
@@ -221,9 +228,9 @@
         >
       </div>
 
-      <!-- Название клиники — необязательное -->
+      <!-- Название клиники -->
       <div class="form-group">
-        <label class="form-label">Название клиники <span style="color:var(--tg-hint);">(необязательно)</span></label>
+        <label class="form-label">Название клиники</label>
         <input
           class="form-input"
           type="text"
@@ -231,6 +238,7 @@
           placeholder="Клиника Здоровье"
           autocomplete="organization"
         >
+        <p class="form-hint-text">Поможет эксперту подготовиться к разговору о вашей клинике</p>
       </div>
 
       <!-- Согласие 152-ФЗ -->
@@ -261,16 +269,17 @@
 
       <h2 class="done-title">Готово!</h2>
       <p class="done-subtitle">
-        Эксперт свяжется с вами<br>в течение 2 часов
+        Эксперт свяжется с вами<br>в рабочие часы (пн–пт, 9–20)
       </p>
 
       <!-- Карточка менеджера -->
       <div class="manager-card">
         <div class="manager-avatar" id="manager-avatar">А</div>
         <div class="manager-info">
-          <div class="manager-name" id="manager-name">Алексей Громов</div>
+          <div class="manager-name" id="manager-name">Артем Гаспарян</div>
           <div class="manager-role" id="manager-role">Ведущий маркетолог</div>
         </div>
+        <button class="manager-tg-btn" id="btn-manager-tg" title="Написать в Telegram">✈️</button>
       </div>
 
       <!-- Кнопки -->

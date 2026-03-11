@@ -28,6 +28,7 @@ const state = {
   answers: { q1: [], q2: null, q3: null, q4: null, q5: null, q6: null },
   scoreResult:    null,
   consentChecked: false,
+  resultSaved:    false, // предотвращает повторный вызов Stage 1 при возврате на результат
   mainBtnHandler: null, // текущий обработчик главной кнопки
   backBtnHandler: null, // текущий обработчик кнопки назад
 };
@@ -325,6 +326,7 @@ function buildQuestionOrder() {
 function startQuiz() {
   state.answers      = { q1: [], q2: null, q3: null, q4: null, q5: null, q6: null };
   state.questionIndex = 0;
+  state.resultSaved   = false; // сбросить при повторном прохождении
   buildQuestionOrder();
   goTo('screen-question');
   renderQuestion();
@@ -491,10 +493,57 @@ function goToLoading() {
 }
 
 // ─── ЭКРАН РЕЗУЛЬТАТА ─────────────────────────────────────────────────────────
+let _offerTimer = null;
+
 function goToResult() {
   goTo('screen-result');
   hideBackBtn();
   renderResult(state.scoreResult);
+
+  // Стадия 1: сохранить прохождение в Google Sheets + отправить результат в Telegram
+  // Fire-and-forget: не блокирует UI, ошибки не видны пользователю
+  if (tg.initData && !state.resultSaved) {
+    state.resultSaved = true;
+    const r = state.scoreResult;
+    fetch('/api/save-result', {
+      method: 'POST',
+      headers: {
+        'Content-Type':         'application/json',
+        'X-Telegram-Init-Data': tg.initData,
+      },
+      body: JSON.stringify({
+        tg_user_id:  tg.initDataUnsafe?.user?.id        ?? null,
+        tg_username: tg.initDataUnsafe?.user?.username  ?? null,
+        first_name:  tg.initDataUnsafe?.user?.first_name ?? null,
+        score:       r.total,
+        level:       r.level,
+        flags:       r.flags,
+        blocks:      Object.fromEntries(Object.entries(r.blocks).map(([k, v]) => [k, v.score])),
+      }),
+    }).catch(() => {});
+  }
+
+  // Показать оффер через 1.5 сек — пользователь успел увидеть результат
+  if (_offerTimer) clearTimeout(_offerTimer);
+  _offerTimer = setTimeout(initOffer, 1500);
+
+  // Прямой контакт для высокого/критического риска
+  const expertContact = document.getElementById('expert-contact');
+  if (expertContact) {
+    const level = state.scoreResult?.level;
+    if (level === 'high' || level === 'critical') {
+      expertContact.classList.remove('hidden');
+      const btn = document.getElementById('btn-expert-contact');
+      if (btn) btn.onclick = () => {
+        tg.HapticFeedback.selectionChanged();
+        try { tg.openTelegramLink(`https://t.me/${CONFIG.managerUsername}`); }
+        catch (_) { window.open(`https://t.me/${CONFIG.managerUsername}`, '_blank'); }
+      };
+    } else {
+      expertContact.classList.add('hidden');
+    }
+  }
+
   setMainBtn('Получить план усиления — бесплатно', () => {
     goTo('screen-contacts');
     initContactForm();
@@ -570,9 +619,11 @@ function renderResult(r) {
   document.getElementById('btn-share').onclick = () => {
     tg.HapticFeedback.selectionChanged();
     const botUrl = `https://t.me/${CONFIG.botUsername}`;
-    const text = encodeURIComponent(
-      `Прошёл маркетинговый стресс-тест клиники — ${r.total}/100 (${r.levelData.badge}).\nПроверьте свою клинику:`
-    );
+    // Для высокого/критического риска — не публикуем уровень (репутационный барьер)
+    const shareText = (r.level === 'good' || r.level === 'moderate')
+      ? `Прошёл маркетинговый стресс-тест клиники — ${r.total}/100 (${r.levelData.badge}).\nПроверьте свою клинику:`
+      : `Прошёл маркетинговый стресс-тест клиники — нашёл 3 точки роста в маркетинге.\nПроверьте свою:`;
+    const text = encodeURIComponent(shareText);
     try { tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(botUrl)}&text=${text}`); }
     catch (_) {}
   };
@@ -580,6 +631,9 @@ function renderResult(r) {
 
 // ─── ЭКРАН ФОРМЫ КОНТАКТОВ ────────────────────────────────────────────────────
 function initContactForm() {
+  // Отменить таймер оффера — не показывать поверх формы
+  if (_offerTimer) { clearTimeout(_offerTimer); _offerTimer = null; }
+
   const user = tg.initDataUnsafe?.user || {};
   const nameInput = document.getElementById('input-name');
   if (user.first_name) {
@@ -624,6 +678,11 @@ function initContactForm() {
 function handleContactBack() {
   goTo('screen-result', 'back');
   hideBackBtn();
+  // Перезапустить таймер оффера если его ещё не показывали
+  if (!localStorage.getItem(OFFER_SHOWN_KEY)) {
+    if (_offerTimer) clearTimeout(_offerTimer);
+    _offerTimer = setTimeout(initOffer, 1500);
+  }
   setMainBtn('Получить план усиления — бесплатно', () => {
     goTo('screen-contacts');
     initContactForm();
@@ -681,7 +740,10 @@ async function submitForm() {
     if (CONFIG.webhookUrl) {
       await fetch(CONFIG.webhookUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type':         'application/json',
+          'X-Telegram-Init-Data': tg.initData || '',
+        },
         body: JSON.stringify(payload),
       });
     }
@@ -707,6 +769,16 @@ function initDoneScreen() {
   btnChannel.querySelector('span:last-child').textContent = `Канал ${CONFIG.agencyName}`;
   btnChannel.onclick = () => tg.openTelegramLink(CONFIG.channelUrl);
 
+  // Кнопка прямого сообщения менеджеру
+  const btnManagerTg = document.getElementById('btn-manager-tg');
+  if (btnManagerTg && CONFIG.managerUsername) {
+    btnManagerTg.onclick = () => {
+      tg.HapticFeedback.selectionChanged();
+      try { tg.openTelegramLink(`https://t.me/${CONFIG.managerUsername}`); }
+      catch (_) { window.open(`https://t.me/${CONFIG.managerUsername}`, '_blank'); }
+    };
+  }
+
   document.getElementById('btn-close').onclick = () => {
     if (isInTelegram) tg.close();
     else window.close();
@@ -719,7 +791,7 @@ function init() {
   tg.expand();
   applyTheme();
   initWelcome();
-  initOffer();
+  // initOffer вызывается из goToResult() с задержкой 1.5 сек
 }
 
 document.addEventListener('DOMContentLoaded', init);
