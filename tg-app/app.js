@@ -651,10 +651,15 @@ function renderResult(r) {
   document.getElementById('btn-share').onclick = () => {
     tg.HapticFeedback.selectionChanged();
     const botUrl = `https://t.me/${CONFIG.botUsername}`;
-    // Для высокого/критического риска — не публикуем уровень (репутационный барьер)
-    const shareText = (r.level === 'good' || r.level === 'moderate')
-      ? `Прошёл маркетинговый стресс-тест клиники — ${r.total}/100 (${r.levelData.badge}).\nПроверьте свою клинику:`
-      : `Прошёл маркетинговый стресс-тест клиники — нашёл 3 точки роста в маркетинге.\nПроверьте свою:`;
+    let shareText;
+    if (r.level === 'good' || r.level === 'moderate') {
+      // Хороший результат — показываем балл и уровень
+      shareText = `Прошёл стресс-тест маркетинга клиники — ${r.total}/100 (${r.levelData.badge}).\nПроверьте свою клинику:`;
+    } else {
+      // Высокий/критический — не публикуем уровень, но показываем реальные проблемы
+      const problems = (r.topProblems || []).slice(0, 3).map(p => `⚡ ${p.text}`).join('\n');
+      shareText = `Прошёл стресс-тест маркетинга клиники — нашёл слабые места:\n${problems}\n\nПроверьте свою клинику:`;
+    }
     const text = encodeURIComponent(shareText);
     try { tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(botUrl)}&text=${text}`); }
     catch (_) {}
