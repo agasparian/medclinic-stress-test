@@ -290,7 +290,17 @@ function initWelcome() {
   const counter = document.getElementById('welcome-counter');
   if (counter) {
     counter.textContent = 'Уже прошли 0 клиник';
-    setTimeout(() => animateCounter(counter, CONFIG.totalAudited), 400);
+    // Сначала анимируем статический fallback, потом подгружаем реальный счётчик
+    setTimeout(() => {
+      animateCounter(counter, CONFIG.totalAudited);
+      fetch('/api/stats')
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          const real = data?.count;
+          if (real && real > CONFIG.totalAudited) animateCounter(counter, real, 800);
+        })
+        .catch(() => {});
+    }, 400);
   }
 
   // Персональное приветствие по имени из Telegram
