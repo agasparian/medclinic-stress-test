@@ -283,7 +283,7 @@ function animateCounter(el, target, duration = 1200) {
     // easeOutExpo
     const ease = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
     const value = Math.round(ease * target);
-    el.textContent = `Стресс-тест прошли уже ${value.toLocaleString('ru')}`;
+    el.textContent = `${value.toLocaleString('ru')} — столько клиник уже прошли тест`;
     if (progress < 1) requestAnimationFrame(update);
   };
   requestAnimationFrame(update);
