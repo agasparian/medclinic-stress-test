@@ -273,9 +273,12 @@ async function checkSubscription() {
 }
 
 // ─── ЭКРАН 1: СТАРТ ───────────────────────────────────────────────────────────
+let _counterAnimGen = 0; // версия анимации — отменяет предыдущую при новом вызове
 function animateCounter(el, target, duration = 1200) {
+  const gen = ++_counterAnimGen;
   const start = performance.now();
   const update = (now) => {
+    if (_counterAnimGen !== gen) return; // отменена новой анимацией
     const progress = Math.min((now - start) / duration, 1);
     // easeOutExpo
     const ease = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
