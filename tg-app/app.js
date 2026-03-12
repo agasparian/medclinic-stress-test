@@ -297,7 +297,7 @@ function initWelcome() {
         .then(r => r.ok ? r.json() : null)
         .then(data => {
           const real = data?.count;
-          if (real && real > CONFIG.totalAudited) animateCounter(counter, real, 800);
+          if (real != null) animateCounter(counter, CONFIG.totalAudited + real, 800);
         })
         .catch(() => {});
     }, 400);
