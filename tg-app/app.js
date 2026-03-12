@@ -293,17 +293,16 @@ function initWelcome() {
   const counter = document.getElementById('welcome-counter');
   if (counter) {
     counter.textContent = 'Уже прошли 0 клиник';
-    // Сначала анимируем статический fallback, потом подгружаем реальный счётчик
-    setTimeout(() => {
-      animateCounter(counter, CONFIG.totalAudited);
-      fetch('/api/stats', { cache: 'no-store' })
-        .then(r => r.ok ? r.json() : null)
-        .then(data => {
-          const real = data?.count;
-          if (real != null) animateCounter(counter, CONFIG.totalAudited + real, 800);
-        })
-        .catch(() => {});
-    }, 400);
+    // Ждём API до 1000ms, потом одна анимация до итоговой цифры
+    const apiFetch = fetch('/api/stats', { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .catch(() => null);
+    const timeout  = new Promise(resolve => setTimeout(() => resolve(null), 1000));
+    Promise.race([apiFetch, timeout]).then(data => {
+      const real   = data?.count;
+      const target = real != null ? CONFIG.totalAudited + real : CONFIG.totalAudited;
+      setTimeout(() => animateCounter(counter, target), 400);
+    });
   }
 
   // Персональное приветствие по имени из Telegram
