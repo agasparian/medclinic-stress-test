@@ -110,10 +110,14 @@ async function createAmoContactAndLead(d, token, domain) {
   const contactId = contactData._embedded?.contacts?.[0]?.id;
 
   // 2. Создать сделку, привязанную к контакту
-  const leadName  = `Стресс-тест: ${d.clinic || d.name || 'клиника'}`;
-  const levelText = AMO_LEVEL_TEXT[d.level] || d.level || '';
-  const leadBody  = [{
-    name: leadName,
+  const leadName   = `Стресс-тест: ${d.clinic || d.name || 'клиника'}`;
+  const levelText  = AMO_LEVEL_TEXT[d.level] || d.level || '';
+  const pipelineId = process.env.AMO_PIPELINE_ID ? Number(process.env.AMO_PIPELINE_ID) : undefined;
+  const statusId   = process.env.AMO_STATUS_ID   ? Number(process.env.AMO_STATUS_ID)   : undefined;
+  const leadBody   = [{
+    name:        leadName,
+    pipeline_id: pipelineId,
+    status_id:   statusId,
     _embedded: {
       contacts: contactId ? [{ id: contactId }] : [],
       tags:     levelText ? [{ name: levelText }] : [],
