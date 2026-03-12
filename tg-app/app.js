@@ -193,27 +193,17 @@ function applyTheme() {
   if (tg.colorScheme === 'dark') document.body.setAttribute('data-theme', 'dark');
 }
 
-// ─── ОФФЕР-МОДАЛКА ────────────────────────────────────────────────────────────
-const OFFER_SHOWN_KEY = 'medclinic_offer_shown';
+// ─── ЛИДМАГНИТ (встроенная карточка) ─────────────────────────────────────────
 
-function closeOffer() {
-  const overlay = document.getElementById('offer-overlay');
-  overlay.classList.add('closing');
-  setTimeout(() => overlay.classList.add('hidden'), 220);
-}
-
-function initOffer() {
-  if (localStorage.getItem(OFFER_SHOWN_KEY)) return; // уже показывали
-
+function renderOfferCard() {
   const o = CONFIG.offer;
   if (!o) return;
 
-  // Заполняем контент
-  document.getElementById('offer-emoji').textContent    = o.emoji;
-  document.getElementById('offer-title').textContent    = o.title;
-  document.getElementById('offer-subtitle').textContent = o.subtitle;
+  document.getElementById('offer-inline-emoji').textContent    = o.emoji;
+  document.getElementById('offer-inline-title').textContent    = o.title;
+  document.getElementById('offer-inline-subtitle').textContent = o.subtitle;
 
-  const ul = document.getElementById('offer-bullets');
+  const ul = document.getElementById('offer-inline-bullets');
   ul.innerHTML = '';
   o.bullets.forEach(text => {
     const li = document.createElement('li');
@@ -221,21 +211,12 @@ function initOffer() {
     ul.appendChild(li);
   });
 
-  const btn = document.getElementById('offer-btn');
+  const btn = document.getElementById('offer-inline-btn');
   btn.textContent = o.btnText;
   btn.onclick = () => {
-    localStorage.setItem(OFFER_SHOWN_KEY, '1');
-    closeOffer();
+    tg.HapticFeedback.selectionChanged();
     try { tg.openTelegramLink(o.btnUrl); } catch (_) { window.open(o.btnUrl, '_blank'); }
   };
-
-  document.getElementById('offer-skip').onclick = () => {
-    localStorage.setItem(OFFER_SHOWN_KEY, '1');
-    closeOffer();
-  };
-
-  // Показываем
-  document.getElementById('offer-overlay').classList.remove('hidden');
 }
 
 // ─── ЭКРАН 1: СТАРТ ───────────────────────────────────────────────────────────
@@ -493,7 +474,6 @@ function goToLoading() {
 }
 
 // ─── ЭКРАН РЕЗУЛЬТАТА ─────────────────────────────────────────────────────────
-let _offerTimer = null;
 
 function goToResult() {
   goTo('screen-result');
@@ -523,9 +503,8 @@ function goToResult() {
     }).catch(() => {});
   }
 
-  // Показать оффер через 1.5 сек — пользователь успел увидеть результат
-  if (_offerTimer) clearTimeout(_offerTimer);
-  _offerTimer = setTimeout(initOffer, 1500);
+  // Встроенная карточка лидмагнита
+  renderOfferCard();
 
   // Прямой контакт для высокого/критического риска
   const expertContact = document.getElementById('expert-contact');
@@ -631,9 +610,6 @@ function renderResult(r) {
 
 // ─── ЭКРАН ФОРМЫ КОНТАКТОВ ────────────────────────────────────────────────────
 function initContactForm() {
-  // Отменить таймер оффера — не показывать поверх формы
-  if (_offerTimer) { clearTimeout(_offerTimer); _offerTimer = null; }
-
   const user = tg.initDataUnsafe?.user || {};
   const nameInput = document.getElementById('input-name');
   if (user.first_name) {
@@ -678,11 +654,6 @@ function initContactForm() {
 function handleContactBack() {
   goTo('screen-result', 'back');
   hideBackBtn();
-  // Перезапустить таймер оффера если его ещё не показывали
-  if (!localStorage.getItem(OFFER_SHOWN_KEY)) {
-    if (_offerTimer) clearTimeout(_offerTimer);
-    _offerTimer = setTimeout(initOffer, 1500);
-  }
   setMainBtn('Получить план усиления — бесплатно', () => {
     goTo('screen-contacts');
     initContactForm();

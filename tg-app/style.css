@@ -253,102 +253,51 @@ html, body {
   margin: 16px 0 0;
 }
 
-/* ─── ОФФЕР-МОДАЛКА ──────────────────────────────────────────────────────────── */
-.offer-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  z-index: 10000;
-  padding-bottom: env(safe-area-inset-bottom, 0);
-  animation: overlay-in 0.25s ease both;
-}
-
-@media (min-width: 600px) {
-  .offer-overlay {
-    align-items: center;
-    padding-bottom: 0;
-  }
-}
-
-.offer-overlay.hidden {
-  display: none;
-}
-
-.offer-overlay.closing {
-  animation: overlay-out 0.22s ease forwards;
-}
-
-@keyframes overlay-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-@keyframes overlay-out {
-  from { opacity: 1; }
-  to   { opacity: 0; }
-}
-
-.offer-card {
-  background: var(--tg-bg);
-  border-radius: 20px 20px 0 0;
-  padding: 28px 20px 32px;
-  width: 100%;
-  max-width: 480px;
+/* ─── ЛИДМАГНИТ (встроенная карточка) ───────────────────────────────────────── */
+.offer-inline {
+  background: var(--tg-secondary);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-top: 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  animation: card-in 0.32s cubic-bezier(0.34, 1.4, 0.64, 1) both;
 }
 
-@media (min-width: 600px) {
-  .offer-card {
-    border-radius: 20px;
-    max-width: 420px;
-  }
-}
-
-.offer-overlay.closing .offer-card {
-  animation: card-out 0.22s ease forwards;
-}
-
-@keyframes card-in {
-  from { transform: translateY(60px); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
-}
-
-@keyframes card-out {
-  from { transform: translateY(0);    opacity: 1; }
-  to   { transform: translateY(60px); opacity: 0; }
-}
-
-.offer-emoji {
-  font-size: 52px;
+.offer-inline-emoji {
+  font-size: 40px;
   line-height: 1;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 
-.offer-title {
-  font-size: 20px;
+.offer-inline-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.offer-inline-title {
+  font-size: 17px;
   font-weight: 700;
   color: var(--tg-text);
-  margin: 0 0 10px;
+  margin-bottom: 6px;
   line-height: 1.3;
 }
 
-.offer-subtitle {
-  font-size: 14px;
+.offer-inline-subtitle {
+  font-size: 13px;
   color: var(--tg-hint);
-  margin: 0 0 18px;
+  margin: 0 0 16px;
   line-height: 1.5;
 }
 
-.offer-bullets {
+.offer-inline-bullets {
   list-style: none;
-  margin: 0 0 24px;
+  margin: 0 0 16px;
   padding: 0;
   width: 100%;
   display: flex;
@@ -357,40 +306,29 @@ html, body {
   text-align: left;
 }
 
-.offer-bullets li {
-  font-size: 14px;
+.offer-inline-bullets li {
+  font-size: 13px;
   color: var(--tg-text);
-  background: var(--tg-secondary);
+  background: var(--tg-bg);
   border-radius: var(--radius-sm);
-  padding: 10px 14px;
+  padding: 9px 12px;
 }
 
-.offer-btn {
+.offer-inline-btn {
   width: 100%;
-  min-height: 52px;
+  min-height: 48px;
   background: var(--accent);
   color: #fff;
   border: none;
-  border-radius: var(--radius-md);
-  font-size: 16px;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
-  margin-bottom: 12px;
   transition: opacity 0.15s;
 }
 
-.offer-btn:active { opacity: 0.85; }
-
-.offer-skip {
-  background: none;
-  border: none;
-  font-size: 14px;
-  color: var(--tg-hint);
-  cursor: pointer;
-  font-family: inherit;
-  padding: 4px 8px;
-}
+.offer-inline-btn:active { opacity: 0.85; }
 
 /* ─── ЭКРАН 2–7: Вопросы ──────────────────────────────────────────────────────── */
 .question-header {
