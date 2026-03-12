@@ -991,20 +991,25 @@ html, body {
 }
 
 .expert-contact-btn {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 48px;
   background: none;
-  border: none;
+  border: 1.5px solid var(--accent);
+  border-radius: var(--radius-sm);
   color: var(--accent);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
   font-family: inherit;
-  padding: 8px 4px;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  padding: 12px 16px;
+  transition: opacity 0.15s;
 }
+
+.expert-contact-btn:active { opacity: 0.75; }
 
 /* Кнопка Telegram в карточке менеджера */
 .manager-tg-btn {
