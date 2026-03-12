@@ -296,7 +296,7 @@ function initWelcome() {
     // Сначала анимируем статический fallback, потом подгружаем реальный счётчик
     setTimeout(() => {
       animateCounter(counter, CONFIG.totalAudited);
-      fetch('/api/stats')
+      fetch('/api/stats', { cache: 'no-store' })
         .then(r => r.ok ? r.json() : null)
         .then(data => {
           const real = data?.count;

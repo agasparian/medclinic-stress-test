@@ -1,19 +1,20 @@
 /**
  * api/stats.js
  * Возвращает количество прохождений теста из Google Sheets.
- * Результат кэшируется в памяти на 5 минут.
+ * Результат кэшируется в памяти на 1 минуту (защита от квоты Sheets API).
  */
 
 import { getGoogleAccessToken, SHEET_ID } from './_lib/utils.js';
 
 const ORIGIN = 'https://medclinic-stress-test.vercel.app';
 
-// Кэш: обновляем не чаще раза в 5 минут
+// Кэш: обновляем не чаще раза в 1 минуту
 let _cache = { count: null, expiresAt: 0 };
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin',
     process.env.NODE_ENV === 'development' ? '*' : ORIGIN);
+  res.setHeader('Cache-Control', 'no-store');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   // Отдаём кэш если актуален
@@ -30,7 +31,7 @@ export default async function handler(req, res) {
 
     // Минус 1 строка заголовка
     const count = Math.max(0, (data.values?.length ?? 1) - 1);
-    _cache = { count, expiresAt: Date.now() + 5 * 60_000 };
+    _cache = { count, expiresAt: Date.now() + 60_000 };
 
     return res.status(200).json({ count });
   } catch (err) {
