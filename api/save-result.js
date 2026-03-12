@@ -100,7 +100,7 @@ export default async function handler(req, res) {
   }
 
   const blocksObj = d.blocks || {};
-  const now = new Date().toISOString();
+  const now = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', hour12: false });
 
   // Строка для листа «Прохождения»
   const sheetsRow = [

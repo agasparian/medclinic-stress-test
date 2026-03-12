@@ -124,7 +124,7 @@ export default async function handler(req, res) {
   const d = req.body;
   if (!d || !d.phone) return res.status(400).json({ error: 'Missing phone' });
 
-  const now        = new Date().toISOString();
+  const now        = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', hour12: false });
   const leadValues = [now, d.name ?? '', d.phone ?? '', d.clinic ?? ''];  // N, O, P, Q
 
   const results = await Promise.allSettled([
