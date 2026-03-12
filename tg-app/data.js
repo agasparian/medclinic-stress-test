@@ -14,7 +14,7 @@ const CONFIG = {
   // Webhook для получения лидов (POST JSON).
   webhookUrl: '/api/lead',
   // Ссылка на политику конфиденциальности
-  privacyUrl: 'https://example.com/privacy',
+  privacyUrl: 'https://medclinic-stress-test.vercel.app/privacy.html',
   // Количество прошедших аудит (social proof на стартовом экране)
   totalAudited: 146,
   // Средний балл по нише (для сравнения в результатах)

@@ -692,7 +692,7 @@ function initContactForm() {
   // Ссылка на политику
   const consentLink = document.getElementById('consent-link');
   consentLink.href = CONFIG.privacyUrl;
-  consentLink.onclick = (e) => { e.preventDefault(); tg.openTelegramLink(CONFIG.privacyUrl); };
+  consentLink.onclick = (e) => { e.preventDefault(); tg.openLink(CONFIG.privacyUrl); };
 
   // Чекбокс
   const consentWrap = document.getElementById('consent-wrap');
