@@ -191,6 +191,33 @@
     .trend-flat  { color: #888; }
     .trend-down  { color: #c62828; }
 
+    /* ─── Column headers ─── */
+    .col-headers {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      padding: 0 0 10px;
+      border-bottom: 1.5px solid #e8eaf0;
+      margin-bottom: 4px;
+    }
+    .col-header-left {
+      font-size: 11px;
+      font-weight: 600;
+      color: #aaa;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding-left: 26px;
+    }
+    .col-header-right {
+      font-size: 11px;
+      font-weight: 600;
+      color: #aaa;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      text-align: right;
+      white-space: nowrap;
+    }
+
     /* ─── Risk insight ─── */
     .risk-box {
       background: #fff8e1;
@@ -294,7 +321,7 @@
   <div class="hero-stat">
     <div class="hero-stat-icon">📍</div>
     <div class="hero-stat-text">
-      <strong>Яндекс.Карты — канал №1 по звонкам в 2024</strong>
+      <strong>Яндекс.Карты — канал №1 по звонкам в 2025</strong>
       Клиники с рейтингом 4.5+ получают в <strong style="color:#e65100;font-size:inherit">2.3×</strong> больше обращений, чем с рейтингом 3.5
     </div>
   </div>
@@ -302,6 +329,12 @@
   <!-- Channels table -->
   <div class="card">
     <div class="card-title">8 каналов — доля обращений и стоимость лида</div>
+
+    <!-- Подписи колонок -->
+    <div class="col-headers">
+      <div class="col-header-left">Доля обращений</div>
+      <div class="col-header-right">Цена лида · Тренд доли</div>
+    </div>
 
     <!-- 1. Яндекс.Карты -->
     <div class="channel-row">
@@ -374,7 +407,7 @@
         </div>
       </div>
       <div class="channel-right">
-        <span class="badge badge-yellow">Лид: 15–30%</span>
+        <span class="badge badge-yellow">Комиссия: 15–30%</span>
         <span class="trend trend-up2">↑ Растёт</span>
       </div>
     </div>
@@ -393,7 +426,7 @@
         </div>
       </div>
       <div class="channel-right">
-        <span class="badge badge-green">Лид: ~₀</span>
+        <span class="badge badge-green">Лид: бесплатно</span>
         <span class="trend trend-flat">→ Стабильно</span>
       </div>
     </div>
@@ -413,7 +446,7 @@
       </div>
       <div class="channel-right">
         <span class="badge badge-yellow">Лид: средний</span>
-        <span class="trend trend-flat">→ Низко</span>
+        <span class="trend trend-flat">→ Стабильно</span>
       </div>
     </div>
 
@@ -450,7 +483,7 @@
         </div>
       </div>
       <div class="channel-right">
-        <span class="badge badge-green">Лид: ~₀</span>
+        <span class="badge badge-green">Лид: бесплатно</span>
         <span class="trend trend-up3">↑↑↑ Взрывной</span>
       </div>
     </div>
