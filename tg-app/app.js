@@ -193,15 +193,16 @@ function applyTheme() {
   if (tg.colorScheme === 'dark') document.body.setAttribute('data-theme', 'dark');
 }
 
-// ─── ЛИДМАГНИТ (встроенная карточка) ─────────────────────────────────────────
+// ─── ЛИДМАГНИТ (встроенная карточка с проверкой подписки) ────────────────────
 
 function renderOfferCard() {
   const o = CONFIG.offer;
   if (!o) return;
 
+  // Начальное состояние
   document.getElementById('offer-inline-emoji').textContent    = o.emoji;
   document.getElementById('offer-inline-title').textContent    = o.title;
-  document.getElementById('offer-inline-subtitle').textContent = o.subtitle;
+  document.getElementById('offer-inline-subtitle').textContent = 'Подпишитесь на канал МедСпринт — получите бесплатно';
 
   const ul = document.getElementById('offer-inline-bullets');
   ul.innerHTML = '';
@@ -212,11 +213,63 @@ function renderOfferCard() {
   });
 
   const btn = document.getElementById('offer-inline-btn');
-  btn.textContent = o.btnText;
+  btn.textContent = '📲 Подписаться и получить';
+  btn.disabled = false;
+  btn.className = 'offer-inline-btn';
   btn.onclick = () => {
     tg.HapticFeedback.selectionChanged();
-    try { tg.openTelegramLink(o.btnUrl); } catch (_) { window.open(o.btnUrl, '_blank'); }
+    try { tg.openTelegramLink(`https://t.me/${o.channelUsername}`); }
+    catch (_) { window.open(`https://t.me/${o.channelUsername}`, '_blank'); }
+    // После открытия канала меняем кнопку
+    setTimeout(() => {
+      btn.textContent = '✅ Я подписался — проверить';
+      btn.onclick = () => checkSubscription();
+    }, 1200);
   };
+}
+
+async function checkSubscription() {
+  const o   = CONFIG.offer;
+  const btn = document.getElementById('offer-inline-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Проверяем подписку...';
+
+  try {
+    const userId = tg.initDataUnsafe?.user?.id;
+    const r = await fetch('/api/check-sub', {
+      method:  'POST',
+      headers: {
+        'Content-Type':         'application/json',
+        'X-Telegram-Init-Data': tg.initData || '',
+      },
+      body: JSON.stringify({ tg_user_id: userId }),
+    });
+    const data = await r.json();
+
+    if (data.subscribed) {
+      // Разблокируем карту
+      document.getElementById('offer-inline-emoji').textContent    = '✅';
+      document.getElementById('offer-inline-title').textContent    = 'Подписка подтверждена!';
+      document.getElementById('offer-inline-subtitle').textContent = 'Карта каналов привлечения пациентов готова';
+      document.getElementById('offer-inline-bullets').innerHTML    = '';
+      btn.textContent  = '🗺️ Открыть карту каналов';
+      btn.disabled     = false;
+      btn.className    = 'offer-inline-btn offer-inline-btn--success';
+      btn.onclick      = () => {
+        tg.HapticFeedback.notificationOccurred('success');
+        const url = window.location.origin + o.materialPath;
+        try { tg.openLink(url); } catch (_) { window.open(url, '_blank'); }
+      };
+    } else {
+      btn.disabled    = false;
+      btn.textContent = '🔄 Подписка не найдена — попробовать снова';
+      btn.onclick     = () => checkSubscription();
+    }
+  } catch (_) {
+    btn.disabled    = false;
+    btn.textContent = '🔄 Ошибка — попробовать снова';
+    btn.onclick     = () => checkSubscription();
+  }
 }
 
 // ─── ЭКРАН 1: СТАРТ ───────────────────────────────────────────────────────────

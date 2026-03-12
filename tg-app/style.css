@@ -330,6 +330,10 @@ html, body {
 
 .offer-inline-btn:active { opacity: 0.85; }
 
+.offer-inline-btn--success {
+  background: #34C759;
+}
+
 /* ─── ЭКРАН 2–7: Вопросы ──────────────────────────────────────────────────────── */
 .question-header {
   padding: 12px 16px 0;

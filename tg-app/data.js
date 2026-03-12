@@ -34,8 +34,8 @@ const CONFIG = {
       '📍 Почему Яндекс.Карты — канал №1 и как это использовать',
       '🔔 Новые кейсы и инструменты для маркетологов клиник',
     ],
-    btnText:  'Открыть канал МедСпринт',
-    btnUrl:   'https://t.me/medsprint',
+    channelUsername: 'medsprint',
+    materialPath:    '/materials/channels-map.html',
   },
 };
 
