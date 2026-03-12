@@ -914,7 +914,12 @@ html, body {
   width: 100%;
   max-width: 300px;
   margin-bottom: 24px;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: opacity var(--transition);
 }
+.manager-card:active { opacity: 0.75; }
 
 .manager-avatar {
   width: 44px;
@@ -1012,7 +1017,7 @@ html, body {
 .expert-contact-btn:active { opacity: 0.75; }
 
 /* Кнопка Telegram в карточке менеджера */
-.manager-tg-btn {
+.manager-tg-icon {
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -1028,7 +1033,7 @@ html, body {
   transition: opacity var(--transition);
 }
 
-.manager-tg-btn:active { opacity: 0.75; }
+.manager-tg-icon:active { opacity: 0.75; }
 
 /* Подсказка под полем формы */
 .form-hint-text {

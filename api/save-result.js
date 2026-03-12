@@ -29,6 +29,7 @@ async function appendToSheet(sheetName, values, accessToken) {
 const LEVEL_EMOJI = { good: '🟢', moderate: '🟡', high: '🔴', critical: '⛔' };
 const LEVEL_TEXT  = { good: 'ХОРОШИЙ УРОВЕНЬ', moderate: 'УМЕРЕННЫЙ РИСК', high: 'ВЫСОКИЙ РИСК', critical: 'КРИТИЧЕСКИЙ РИСК' };
 const BLOCK_ICONS = { channels: '📡', budget: '💰', seo: '🔍', geo: '📍', base: '👥', analytics: '📊' };
+const BLOCK_NAMES = { channels: 'Каналы', budget: 'Бюджет', seo: 'SEO', geo: 'Карты', base: 'База пациентов', analytics: 'Аналитика' };
 const BLOCK_MAX   = { channels: 20, budget: 20, seo: 20, geo: 15, base: 15, analytics: 10 };
 const PROBLEM_TEXTS = {
   channels:  'Вы зависите от 1–2 каналов. Если один закроется — поток пациентов рухнет',
@@ -47,7 +48,7 @@ function buildUserResultMessage(d) {
     const max = BLOCK_MAX[key] || '?';
     const pct = max ? (score / max) * 100 : 0;
     const flag = pct === 0 ? ' 🔴' : pct < 50 ? ' ⚠️' : '';
-    return `${BLOCK_ICONS[key] || '•'} ${key}: ${score}/${max}${flag}`;
+    return `${BLOCK_ICONS[key] || '•'} ${BLOCK_NAMES[key] || key}: ${score}/${max}${flag}`;
   }).join('\n');
 
   const topProblems = Object.entries(d.blocks || {})
@@ -124,13 +125,12 @@ export default async function handler(req, res) {
 
     // 2. Отправить результат пользователю в Telegram (с кнопкой возврата в приложение)
     d.tg_user_id && process.env.BOT_TOKEN
-      ? sendTgMessage(d.tg_user_id, buildUserResultMessage(d),
-          process.env.WEBAPP_URL ? {
-            inline_keyboard: [[{
-              text: '📱 Открыть приложение',
-              web_app: { url: process.env.WEBAPP_URL },
-            }]],
-          } : null)
+      ? sendTgMessage(d.tg_user_id, buildUserResultMessage(d), {
+          inline_keyboard: [[{
+            text: '📱 Открыть приложение',
+            web_app: { url: process.env.WEBAPP_URL || 'https://medclinic-stress-test.vercel.app' },
+          }]],
+        })
       : Promise.resolve(),
   ]);
 
