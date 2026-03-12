@@ -2,14 +2,14 @@
  * api/lead.js
  * Стадия 2: пользователь заполнил форму (имя, телефон, клиника) → «Отправить».
  *
- * Если N8N_WEBHOOK_URL настроен (основной путь):
- *   - Личные данные (имя, телефон, клиника) отправляются только в n8n
- *   - n8n создаёт сделку в amoCRM (серверы РФ) и уведомляет команду в Telegram
- *   - В Google Sheets записывается только метка времени заявки (без личных данных)
+ * Если AMO_TOKEN + AMO_DOMAIN настроены:
+ *   - Создаёт контакт и сделку в amoCRM (хранение в РФ)
+ *   - В Google Sheets записывается только метка времени (без личных данных)
  *
- * Если N8N_WEBHOOK_URL не настроен (fallback):
+ * Если AMO_TOKEN не настроен (fallback):
  *   - Старый путь: имя/телефон/клиника → Google Sheets столбцы N–Q
- *   - Уведомление команды в Telegram напрямую
+ *
+ * В обоих случаях: уведомление команды в Telegram.
  */
 
 import { verifyTelegramInitData, getGoogleAccessToken, SHEET_ID } from './_lib/utils.js';
@@ -33,7 +33,7 @@ async function findRowByUserId(userId, accessToken) {
   return null;
 }
 
-/** Основной путь: записывает только метку времени в столбец N (без личных данных). */
+/** Основной путь: только метка времени в столбец N, без личных данных. */
 async function markLeadSubmitted(rowNum, timestamp, accessToken) {
   const range = encodeURIComponent(`${SHEET_NAME}!N${rowNum}`);
   const res = await fetch(
@@ -61,7 +61,7 @@ async function updateLeadColumns(rowNum, values, accessToken) {
   if (!res.ok) throw new Error(`Sheets update failed: ${await res.text()}`);
 }
 
-/** Fallback: создаёт полную строку (edge case — пользователь не проходил тест). */
+/** Fallback: создаёт полную строку (edge case). */
 async function appendFullRow(values, accessToken) {
   const range = encodeURIComponent(`${SHEET_NAME}!A:A`);
   const res = await fetch(
@@ -75,7 +75,77 @@ async function appendFullRow(values, accessToken) {
   if (!res.ok) throw new Error(`Sheets append failed: ${await res.text()}`);
 }
 
-// ─── Telegram (fallback) ──────────────────────────────────────────────────────
+// ─── amoCRM helpers ───────────────────────────────────────────────────────────
+
+const AMO_LEVEL_TEXT = {
+  good:     'Хороший уровень',
+  moderate: 'Умеренный риск',
+  high:     'Высокий риск',
+  critical: 'Критический риск',
+};
+
+async function amoRequest(path, body, token, domain) {
+  const res = await fetch(`https://${domain}.amocrm.ru${path}`, {
+    method:  'POST',
+    headers: {
+      Authorization:  `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(`amoCRM ${path} failed (${res.status}): ${JSON.stringify(data)}`);
+  return data;
+}
+
+async function createAmoContactAndLead(d, token, domain) {
+  // 1. Создать контакт
+  const contactData = await amoRequest('/api/v4/contacts', [{
+    name: d.name || 'Без имени',
+    custom_fields_values: [{
+      field_code: 'PHONE',
+      values: [{ value: d.phone, enum_code: 'WORK' }],
+    }],
+  }], token, domain);
+  const contactId = contactData._embedded?.contacts?.[0]?.id;
+
+  // 2. Создать сделку, привязанную к контакту
+  const leadName  = `Стресс-тест: ${d.clinic || d.name || 'клиника'}`;
+  const levelText = AMO_LEVEL_TEXT[d.level] || d.level || '';
+  const leadBody  = [{
+    name: leadName,
+    _embedded: {
+      contacts: contactId ? [{ id: contactId }] : [],
+      tags:     levelText ? [{ name: levelText }] : [],
+    },
+  }];
+  const leadData = await amoRequest('/api/v4/leads', leadBody, token, domain);
+  const leadId   = leadData._embedded?.leads?.[0]?.id;
+
+  // 3. Добавить примечание со всеми данными теста
+  if (leadId) {
+    const b = d.blocks || {};
+    const noteText = [
+      `Балл: ${d.score ?? '—'}/100 · ${levelText}`,
+      `Флаги: ${(d.flags || []).join(', ') || '—'}`,
+      `Каналы: ${b.channels ?? '—'}/20 · Бюджет: ${b.budget ?? '—'}/20 · SEO: ${b.seo ?? '—'}/20`,
+      `Карты: ${b.geo ?? '—'}/15 · База: ${b.base ?? '—'}/15 · Аналитика: ${b.analytics ?? '—'}/10`,
+      `Telegram: ${d.tg_username ? '@' + d.tg_username : (d.tg_user_id || '—')}`,
+      d.clinic ? `Клиника: ${d.clinic}` : '',
+    ].filter(Boolean).join('\n');
+
+    await amoRequest(`/api/v4/leads/${leadId}/notes`, [{
+      note_type: 'common',
+      params:    { text: noteText },
+    }], token, domain).catch(err => {
+      console.warn('[lead/amo] note failed (non-critical):', err.message);
+    });
+  }
+
+  return { contactId, leadId };
+}
+
+// ─── Telegram notification ────────────────────────────────────────────────────
 
 const LEVEL_EMOJI = { good: '🟢', moderate: '🟡', high: '🔴', critical: '⛔' };
 const LEVEL_TEXT  = { good: 'ХОРОШИЙ УРОВЕНЬ', moderate: 'УМЕРЕННЫЙ РИСК', high: 'ВЫСОКИЙ РИСК', critical: 'КРИТИЧЕСКИЙ РИСК' };
@@ -133,51 +203,35 @@ export default async function handler(req, res) {
   const d = req.body;
   if (!d || !d.phone) return res.status(400).json({ error: 'Missing phone' });
 
-  const now    = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', hour12: false });
-  const n8nUrl = process.env.N8N_WEBHOOK_URL;
+  const now      = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', hour12: false });
+  const amoToken = process.env.AMO_TOKEN;
+  const amoDomain = process.env.AMO_DOMAIN;
 
-  if (n8nUrl) {
-    // ─── Основной путь: личные данные только в n8n → amoCRM (РФ) ────────────
-    const tasks = [
+  const tasks = [];
 
-      // 1. Отправить лид в n8n (amoCRM + Telegram уведомление на стороне n8n)
-      fetch(n8nUrl, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name:        d.name        ?? '',
-          phone:       d.phone       ?? '',
-          clinic:      d.clinic      ?? '',
-          score:       d.score       ?? null,
-          level:       d.level       ?? '',
-          flags:       d.flags       ?? [],
-          blocks:      d.blocks      ?? {},
-          tg_user_id:  d.tg_user_id  ?? null,
-          tg_username: d.tg_username ?? '',
-          timestamp:   now,
-        }),
-      }).then(r => { if (!r.ok) throw new Error(`n8n webhook failed: ${r.status}`); }),
+  if (amoToken && amoDomain) {
+    // ─── Основной путь: личные данные только в amoCRM (РФ) ───────────────────
 
-      // 2. Пометить строку в Sheets: только дата заявки, без личных данных
+    // 1. amoCRM: контакт + сделка
+    tasks.push(
+      createAmoContactAndLead(d, amoToken, amoDomain)
+        .then(({ contactId, leadId }) => {
+          console.log(`[lead/amo] contact=${contactId} lead=${leadId}`);
+        })
+    );
+
+    // 2. Google Sheets: только метка времени, без личных данных
+    tasks.push(
       getGoogleAccessToken().then(async token => {
         const rowNum = await findRowByUserId(d.tg_user_id, token);
         if (rowNum) await markLeadSubmitted(rowNum, now, token);
-        // edge case (нет строки): не пишем ничего, личные данные за рубеж не уходят
-      }),
-    ];
-
-    const results = await Promise.allSettled(tasks);
-    results.forEach((r, i) => {
-      if (r.status === 'rejected') {
-        console.error(`[lead/n8n] ${['n8n webhook', 'Sheets mark'][i]} failed:`, r.reason);
-      }
-    });
+      })
+    );
 
   } else {
-    // ─── Fallback: старый путь без n8n (Sheets + Telegram напрямую) ──────────
+    // ─── Fallback: старый путь (личные данные в Sheets) ──────────────────────
     const leadValues = [now, d.name ?? '', d.phone ?? '', d.clinic ?? ''];
-
-    const tasks = [
+    tasks.push(
       getGoogleAccessToken().then(async token => {
         const rowNum = await findRowByUserId(d.tg_user_id, token);
         if (rowNum) {
@@ -185,42 +239,36 @@ export default async function handler(req, res) {
         } else {
           const b = d.blocks || {};
           await appendFullRow([
-            now,
-            d.tg_user_id  ?? '',
-            d.tg_username ?? '',
-            '',
-            d.score       ?? '',
-            d.level       ?? '',
-            (d.flags || []).join(', '),
-            b.channels  ?? '',
-            b.budget    ?? '',
-            b.seo       ?? '',
-            b.geo       ?? '',
-            b.base      ?? '',
-            b.analytics ?? '',
+            now, d.tg_user_id ?? '', d.tg_username ?? '', '',
+            d.score ?? '', d.level ?? '', (d.flags || []).join(', '),
+            b.channels ?? '', b.budget ?? '', b.seo ?? '',
+            b.geo ?? '', b.base ?? '', b.analytics ?? '',
             ...leadValues,
           ], token);
         }
-      }),
-
-      process.env.LEADS_CHAT_ID && process.env.BOT_TOKEN
-        ? sendTgMessage(
-            process.env.LEADS_CHAT_ID,
-            buildLeadNotification(d),
-            d.tg_user_id ? {
-              inline_keyboard: [[{ text: '💬 Написать в Telegram', url: `tg://user?id=${d.tg_user_id}` }]],
-            } : null,
-          )
-        : Promise.resolve(),
-    ];
-
-    const results = await Promise.allSettled(tasks);
-    results.forEach((r, i) => {
-      if (r.status === 'rejected') {
-        console.error(`[lead] ${['Sheets', 'TG notify'][i]} failed:`, r.reason);
-      }
-    });
+      })
+    );
   }
+
+  // 3. Telegram уведомление команде (всегда, если настроено)
+  if (process.env.LEADS_CHAT_ID && process.env.BOT_TOKEN) {
+    tasks.push(
+      sendTgMessage(
+        process.env.LEADS_CHAT_ID,
+        buildLeadNotification(d),
+        d.tg_user_id ? {
+          inline_keyboard: [[{ text: '💬 Написать в Telegram', url: `tg://user?id=${d.tg_user_id}` }]],
+        } : null,
+      )
+    );
+  }
+
+  const results = await Promise.allSettled(tasks);
+  results.forEach((r, i) => {
+    if (r.status === 'rejected') {
+      console.error(`[lead] task[${i}] failed:`, r.reason?.message || r.reason);
+    }
+  });
 
   return res.status(200).json({ ok: true });
 }
