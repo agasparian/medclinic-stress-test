@@ -661,7 +661,7 @@ function renderResult(r) {
       shareText = `Прошёл стресс-тест маркетинга клиники — нашёл слабые места:\n${problems}\n\nПроверьте свою клинику:\n${botUrl}`;
     }
     const text = encodeURIComponent(shareText);
-    try { tg.openTelegramLink(`https://t.me/share/url?url=&text=${text}`); }
+    try { tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(botUrl)}&text=${text}`); }
     catch (_) {}
   };
 }
