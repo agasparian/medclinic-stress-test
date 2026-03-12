@@ -654,14 +654,14 @@ function renderResult(r) {
     let shareText;
     if (r.level === 'good' || r.level === 'moderate') {
       // Хороший результат — показываем балл и уровень
-      shareText = `Прошёл стресс-тест маркетинга клиники — ${r.total}/100 (${r.levelData.badge}).\nПроверьте свою клинику:`;
+      shareText = `Прошёл стресс-тест маркетинга клиники — ${r.total}/100 (${r.levelData.badge}).\nПроверьте свою клинику:\n${botUrl}`;
     } else {
       // Высокий/критический — не публикуем уровень, но показываем реальные проблемы
       const problems = (r.topProblems || []).slice(0, 3).map(p => `⚡ ${p.text}`).join('\n');
-      shareText = `Прошёл стресс-тест маркетинга клиники — нашёл слабые места:\n${problems}\n\nПроверьте свою клинику:`;
+      shareText = `Прошёл стресс-тест маркетинга клиники — нашёл слабые места:\n${problems}\n\nПроверьте свою клинику:\n${botUrl}`;
     }
     const text = encodeURIComponent(shareText);
-    try { tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(botUrl)}&text=${text}`); }
+    try { tg.openTelegramLink(`https://t.me/share/url?url=&text=${text}`); }
     catch (_) {}
   };
 }
