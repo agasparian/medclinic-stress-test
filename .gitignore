@@ -4,6 +4,7 @@
 *.json.key
 *-service-account*.json
 n8n-medsprint-*.json
+setup-bot.ps1
 
 # Зависимости (если появится Node.js backend)
 node_modules/
