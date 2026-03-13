@@ -297,13 +297,11 @@ async function checkSubscription() {
       document.getElementById('offer-inline-title').textContent    = 'Готово!';
       document.getElementById('offer-inline-subtitle').textContent = 'Карта каналов отправлена в ваш Telegram';
       document.getElementById('offer-inline-bullets').innerHTML    = '';
-      btn.textContent = '💬 Открыть Telegram';
-      btn.disabled    = false;
-      btn.className   = 'offer-inline-btn offer-inline-btn--success';
-      btn.onclick     = () => {
-        tg.HapticFeedback.notificationOccurred('success');
-        tg.close();
-      };
+      btn.textContent = '📨 Карта отправлена в Telegram';
+      btn.disabled    = true;
+      btn.className   = 'offer-inline-btn offer-inline-btn--sent';
+      btn.onclick     = null;
+      tg.HapticFeedback.notificationOccurred('success');
     } else {
       btn.disabled    = false;
       btn.textContent = '🔄 Подписка не найдена — попробовать снова';

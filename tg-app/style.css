@@ -334,6 +334,17 @@ html, body {
   background: #34C759;
 }
 
+.offer-inline-btn--sent {
+  background: transparent;
+  border: 1.5px solid var(--tg-hint, #8e8e93);
+  color: var(--tg-hint, #8e8e93);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: default;
+  pointer-events: none;
+  opacity: 1;
+}
+
 /* ─── ЭКРАН 2–7: Вопросы ──────────────────────────────────────────────────────── */
 .question-header {
   padding: 12px 16px 0;
