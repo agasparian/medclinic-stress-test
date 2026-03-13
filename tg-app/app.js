@@ -216,13 +216,36 @@ function renderOfferCard() {
   btn.textContent = '📲 Подписаться и получить';
   btn.disabled = false;
   btn.className = 'offer-inline-btn';
-  btn.onclick = () => {
+  btn.onclick = async () => {
     tg.HapticFeedback.selectionChanged();
+    // Сначала тихо проверяем — вдруг уже подписан
+    btn.disabled = true;
+    btn.textContent = '⏳ Проверяем...';
+    try {
+      const userId = tg.initDataUnsafe?.user?.id;
+      const r = await fetch('/api/check-sub', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': tg.initData || '' },
+        body:    JSON.stringify({ tg_user_id: userId }),
+      });
+      const d = await r.json();
+      if (d.subscribed) {
+        // Уже подписан — сразу запускаем полный флоу
+        checkSubscription();
+        return;
+      }
+    } catch (_) { /* игнорируем, идём дальше */ }
+
+    // Не подписан — открываем канал
+    btn.disabled = false;
     try { tg.openTelegramLink(`https://t.me/${o.channelUsername}`); }
     catch (_) { window.open(`https://t.me/${o.channelUsername}`, '_blank'); }
-    // После открытия канала меняем кнопку
+
+    // Подсказка о возврате + новая кнопка
+    document.getElementById('offer-inline-subtitle').textContent =
+      '← Вернитесь в приложение после подписки';
     setTimeout(() => {
-      btn.textContent = '✅ Я подписался — проверить';
+      btn.textContent = '✅ Я подписался — получить карту';
       btn.onclick = () => checkSubscription();
     }, 1200);
   };
