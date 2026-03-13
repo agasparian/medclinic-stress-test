@@ -250,8 +250,9 @@ async function checkSubscription() {
       // Отправляем PDF через бота
       btn.textContent = '📨 Отправляем карту...';
       btn.disabled    = true;
+      let sendOk = false;
       try {
-        await fetch('/api/send-material', {
+        const sr = await fetch('/api/send-material', {
           method:  'POST',
           headers: {
             'Content-Type':         'application/json',
@@ -259,7 +260,15 @@ async function checkSubscription() {
           },
           body: JSON.stringify({ tg_user_id: userId }),
         });
-      } catch (_) { /* некритично — PDF всё равно мог уйти */ }
+        sendOk = sr.ok;
+      } catch (_) { /* сетевая ошибка */ }
+
+      if (!sendOk) {
+        btn.disabled    = false;
+        btn.textContent = '🔄 Ошибка отправки — попробовать снова';
+        btn.onclick     = () => checkSubscription();
+        return;
+      }
 
       document.getElementById('offer-inline-emoji').textContent    = '✅';
       document.getElementById('offer-inline-title').textContent    = 'Готово!';
