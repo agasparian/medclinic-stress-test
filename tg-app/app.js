@@ -241,9 +241,7 @@ function renderOfferCard() {
     try { tg.openTelegramLink(`https://t.me/${o.channelUsername}`); }
     catch (_) { window.open(`https://t.me/${o.channelUsername}`, '_blank'); }
 
-    // Подсказка о возврате + новая кнопка
-    document.getElementById('offer-inline-subtitle').textContent =
-      '← Вернитесь в приложение после подписки';
+    // Меняем кнопку на «Я подписался»
     setTimeout(() => {
       btn.textContent = '✅ Я подписался — получить карту';
       btn.onclick = () => checkSubscription();
