@@ -1053,6 +1053,38 @@ body[data-theme="dark"] {
   --tg-hint:      #8e8e93;
 }
 
+/* ─── Политика конфиденциальности ───────────────────────────────────────────── */
+#screen-privacy .screen-content {
+  overflow-y: auto;
+  padding-bottom: 40px;
+}
+.privacy-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+.privacy-updated {
+  font-size: 13px;
+  color: var(--tg-hint);
+  margin-bottom: 20px;
+}
+#screen-privacy h2 {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 20px 0 8px;
+  color: var(--tg-text);
+}
+#screen-privacy p,
+#screen-privacy li {
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+#screen-privacy ul {
+  margin: 4px 0 10px 20px;
+}
+
 /* ─── Утилиты ────────────────────────────────────────────────────────────────── */
 .hidden  { display: none !important; }
 .visible { display: flex !important; }

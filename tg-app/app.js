@@ -689,18 +689,26 @@ function initContactForm() {
   state.consentChecked = false;
   document.getElementById('consent-checkbox').classList.remove('checked');
 
-  // Ссылка на политику
+  // Ссылка на политику — открываем экран внутри приложения
   const consentLink = document.getElementById('consent-link');
-  consentLink.href = CONFIG.privacyUrl;
-  consentLink.onclick = (e) => { e.preventDefault(); tg.openLink(CONFIG.privacyUrl); };
+  consentLink.href = '#';
+  const openPrivacy = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    goTo('screen-privacy');
+    showBackBtn(() => {
+      goTo('screen-contacts', 'back');
+      showBackBtn(handleContactBack);
+    });
+  };
+  consentLink.onclick = openPrivacy;
 
   // Чекбокс
   const consentWrap = document.getElementById('consent-wrap');
   // Убираем старый listener (клонированием)
   const newConsentWrap = consentWrap.cloneNode(true);
   consentWrap.parentNode.replaceChild(newConsentWrap, consentWrap);
-  newConsentWrap.querySelector('#consent-link').onclick =
-    consentLink.onclick;
+  newConsentWrap.querySelector('#consent-link').onclick = openPrivacy;
   newConsentWrap.addEventListener('click', (e) => {
     if (e.target.id === 'consent-link') return;
     state.consentChecked = !state.consentChecked;
