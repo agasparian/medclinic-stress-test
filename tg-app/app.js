@@ -247,18 +247,30 @@ async function checkSubscription() {
     const data = await r.json();
 
     if (data.subscribed) {
-      // Разблокируем карту
+      // Отправляем PDF через бота
+      btn.textContent = '📨 Отправляем карту...';
+      btn.disabled    = true;
+      try {
+        await fetch('/api/send-material', {
+          method:  'POST',
+          headers: {
+            'Content-Type':         'application/json',
+            'X-Telegram-Init-Data': tg.initData || '',
+          },
+          body: JSON.stringify({ tg_user_id: userId }),
+        });
+      } catch (_) { /* некритично — PDF всё равно мог уйти */ }
+
       document.getElementById('offer-inline-emoji').textContent    = '✅';
-      document.getElementById('offer-inline-title').textContent    = 'Подписка подтверждена!';
-      document.getElementById('offer-inline-subtitle').textContent = 'Карта каналов привлечения пациентов готова';
+      document.getElementById('offer-inline-title').textContent    = 'Готово!';
+      document.getElementById('offer-inline-subtitle').textContent = 'Карта каналов отправлена в ваш Telegram';
       document.getElementById('offer-inline-bullets').innerHTML    = '';
-      btn.textContent  = '🗺️ Открыть карту каналов';
-      btn.disabled     = false;
-      btn.className    = 'offer-inline-btn offer-inline-btn--success';
-      btn.onclick      = () => {
+      btn.textContent = '💬 Открыть Telegram';
+      btn.disabled    = false;
+      btn.className   = 'offer-inline-btn offer-inline-btn--success';
+      btn.onclick     = () => {
         tg.HapticFeedback.notificationOccurred('success');
-        const url = window.location.origin + o.materialPath;
-        try { tg.openLink(url); } catch (_) { window.open(url, '_blank'); }
+        tg.close();
       };
     } else {
       btn.disabled    = false;
